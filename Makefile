@@ -7,7 +7,7 @@ INCLUDE_DIR = include
 SRC_DIR 	= src
 OUTPUT_DIR 	= out
 
-OBJS = main.o
+OBJS = main.o dbms_networking.o
 
 # System specific makefile
 ifeq ($(OS),Windows_NT)
