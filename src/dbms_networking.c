@@ -9,8 +9,8 @@
   	#include <Ws2tcpip.h>
 #else
   	#include <sys/socket.h>
- 	//#include <arpa/inet.h>
-  	//#include <netdb.h>  /* Needed for getaddrinfo() and freeaddrinfo() */
+ 	#include <arpa/inet.h>
+  	#include <netdb.h>  /* Needed for getaddrinfo() and freeaddrinfo() */
 #endif
 
 #include "dbms_networking.h"
@@ -42,11 +42,11 @@ static int sock_init(void)
 
 static int sock_quit(void)
 {
-  #ifdef _WIN32
-    return WSACleanup();
-  #else
-    return 0;
-  #endif
+	#ifdef _WIN32
+	 	return WSACleanup();
+	#else
+	  	return 0;
+	#endif
 }
 
 
