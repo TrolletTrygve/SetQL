@@ -5,5 +5,7 @@
 
 // Function declarations
 int dbms_networking_initialize(uint16_t port);
+int dbms_start(void);
+int dbms_networking_kill(void);
 
 #endif
