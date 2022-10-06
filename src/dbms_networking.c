@@ -1,19 +1,20 @@
 #include <stdio.h>
 #include <unistd.h>
-#include <poll.h>
 #include <string.h>
-#include <sys/ioctl.h>
+#include <fcntl.h>
+//#include <sys/ioctl.h>
 
 #ifdef _WIN32
   	#ifndef _WIN32_WINNT
-    	#define _WIN32_WINNT 0x0501  /* Windows XP. */
+    	#define _WIN32_WINNT 0x0501
   	#endif
   	#include <winsock2.h>
   	#include <Ws2tcpip.h>
 #else
   	#include <sys/socket.h>
  	#include <arpa/inet.h>
-  	#include <netdb.h>  /* Needed for getaddrinfo() and freeaddrinfo() */
+	#include <poll.h>
+  	#include <netdb.h>
 #endif
 
 #include "dbms_networking.h"
@@ -105,6 +106,14 @@ static int accept_connection(void)
 }
 
 
+/**
+ *	kill_pfd(index)
+ * 
+ * 	closes a client socket and reorganizes the socket array
+ * 	
+ * 	argument 0:	The index of the socket to kill
+ * 	returns:	1 on success 0 on fail
+ */
 static int kill_pfd(int index)
 {
 	if (close(pfds[index].fd) == -1)
@@ -123,6 +132,16 @@ static int kill_pfd(int index)
 }
 
 
+/**
+ * 	handle_message(index)
+ * 
+ * 	Recieves a message from a socket who is ready to be read.
+ * 	if the message is empty, we can assume that the socket has been closed
+ * 	on the other end and we close it.
+ * 
+ * 	argument 0:	The index of the socket to recieve data from
+ * 	returns:	1 on success, 0 on fail
+ */
 static int handle_message(int index)
 {
 	unsigned char buffer[128];
@@ -136,7 +155,11 @@ static int handle_message(int index)
 	}
 	if (result == 0)
 	{
-		kill_pfd(index);
+		if (!kill_pfd(index))
+		{
+			fprintf(stderr, "%s\n", "Error: kill_pfd");
+			return 0;
+		}
 		return 1;
 	}
 
@@ -180,13 +203,15 @@ int dbms_networking_initialize(uint16_t  port)
 	}
 
 
-	// Make server non-blocking
+	// TODO: Make server socket non-blocking with fcntl()
+	/*
 	res = ioctl(pfds[0].fd, FIONBIO, (void*)&opt);
 	if (res < 0)
 	{
 		perror("ioctl");
 		return 0;
 	}
+	*/
 
 
 	address.sin_family = AF_INET;
@@ -267,7 +292,12 @@ int dbms_start(void)
 				}
 				else
 				{
-					kill_pfd(i);
+					// something went wrong
+					if (!kill_pfd(index))
+					{
+						fprintf(stderr, "%s\n", "Error: kill_pfd");
+						return 0;
+					}
 				}
 			} 
 		}
