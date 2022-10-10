@@ -34,13 +34,17 @@ typedef struct{
  * @brief Struct representing database
  */
 typedef struct{
-    uint64_t**               sets;
+    uint64_t**   sets;
     Attributes*  attributes;
-    SymbolTable* symbolTable;
+    SymbolTable* setNamesTable;
+    SymbolTable* attrNamesTable;
+    SymbolTable* elemNamesTable;
+
     long                universeSize;
     long                setAmount;
     long                attrAmount;
 } Database;
+
 
 /**
  * @brief create an empty database of a certain size
@@ -48,11 +52,14 @@ typedef struct{
  * @param size amount of memory to allocate
  * @param sets amount of set tables to allocate
  * @param attributes amount of attribute tables to allocate
+ * @param elementNames holds strings for all element names. Name of element i should be at index i.
  * @return struct Database pointer with allocated memory
  */
-Database* createEmptyDB(long universeSize, long setSize, long attrSize);
+Database* createEmptyDB(long universeSize, long setSize, long attrSize, char** elementNames);
 
 void addEmptySet(Database* db, char*name);
+
+void addToSet(Database* db, char* set, char* element);
 
 void destroyDB(Database* db);
 

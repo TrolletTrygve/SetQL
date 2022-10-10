@@ -18,6 +18,8 @@ hash_t hash_name(char* ssn) {
     return digest(ssn, 12);
 }
 
+
+
 TableData* create_TableData(char* name, uint64_t index) {
     // Creates a pointer to a new hash table TableData
     TableData* tableData =  (malloc (sizeof (struct TableData)));
@@ -29,6 +31,9 @@ TableData* create_TableData(char* name, uint64_t index) {
     return tableData;
 }
  
+
+
+
 SymbolTable* create_table(int size) {
     // Creates a new SymbolTable
     SymbolTable* table = (SymbolTable*) malloc (sizeof(SymbolTable));
@@ -40,12 +45,16 @@ SymbolTable* create_table(int size) {
     return table;
 }
 
+
+
 void free_TableData(SymbolTable* table, TableData* tableData){
     // Frees an TableData
     free(tableData->name);
     free(tableData);
     table->count--;
 }
+ 
+
  
 void free_table(SymbolTable* table) {
     // Frees the table

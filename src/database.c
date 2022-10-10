@@ -4,7 +4,7 @@
 #include <limits.h>		/* for CHAR_BIT */
 #include "datastructures/database.h"
 
-
+#define WORD_BITS (8 * sizeof(unsigned int));
 #define BITMASK(b) (1 << ((b) % CHAR_BIT))
 #define BITSLOT(b) ((b) / CHAR_BIT)
 #define BITSET(a, b) ((a)[BITSLOT(b)] |= BITMASK(b))
@@ -14,17 +14,31 @@
 
 /* local functions */
 int findFirstEmptySetIndex(Database* db);
+void saveElementNames(Database* db, char** elementNames);
+
+
+
+
 
 
 /**
- * @brief Database holds data for one database
+ * @brief create an empty database of a certain size
+ * 
+ * @param size amount of memory to allocate
+ * @param sets amount of set tables to allocate
+ * @param attributes amount of attribute tables to allocate
+ * @param elementNames holds strings for all element names. Name of element i should be at index i.
+ * @return struct Database pointer with allocated memory
+ *
  * TODO: write description
  * TODO: handle when user want's to increase size of database (setSize/attrSize)
  */
-Database* createEmptyDB(long universeSize, long setSize, long attrSize){
-    printf("createEmptyDB \t- allocate memory for database\n");
+Database* createEmptyDB(long universeSize, long setSize, long attrSize, char** elementNames){
+    printf("createEmptyDB \t- allocate memory for database and symbol table\n");
     Database* db = malloc(sizeof(Database));
-    db->symbolTable = create_table(attrSize+setSize);
+    db->setNamesTable = create_table(setSize*1.3);
+    db->attrNamesTable = create_table(attrSize*1.3);
+    db->elemNamesTable = create_table(universeSize*1.3);
 
     printf("createEmptyDB \t- store attributes\n");
     db->universeSize =  universeSize;
@@ -32,21 +46,21 @@ Database* createEmptyDB(long universeSize, long setSize, long attrSize){
     db->attrAmount = attrSize;
 
     printf("createEmptyDB \t- initializes set\n");
-    db->sets = malloc(sizeof(int*)*setSize);
+    db->sets = malloc(sizeof(uint64_t*)*setSize);
     printf("createEmptyDB \t- initializes attr size %ld\n", sizeof(Attributes)*attrSize);
     db->attributes = malloc(sizeof(Attributes)*attrSize);
 
     printf("createEmptyDB \t- done\n");
+
     return db;
 }
 
-    /*for (long i = 0; i < setSize; i++){
-        db->sets[i] = malloc(sizeof(int)*universeSize);
+
+void saveElementNames(Database* db, char** elementNames){
+    for (size_t i = 0; i < db->universeSize; i++){
+            st_insert(db->elemNamesTable, elementNames[i], i);
     }
-    for (long i = 0; i < attrSize; i++){
-        db->attributes[i].data = malloc(sizeof(Attributes));
-        db->attributes->type=TYPE_UNDEFINED;
-    }*/
+}
 
 
 /**
@@ -86,10 +100,30 @@ void addEmptySet(Database* db, char*name){
         fprintf( stderr, "ERROR: Limit of amount of sets reached!");
         exit(0);
     }
-    st_insert(db->symbolTable, name, index);
-    db->sets[index] = calloc(db->universeSize, sizeof(int));
+    st_insert(db->setNamesTable, name, index);
+    db->sets[index] = calloc(db->universeSize, 1);
 }
 
+
+
+void addToSet(Database* db, char* set, char* element){
+    TableData* edata = st_search(db, element);
+    if(edata == NULL){
+        perror("addToSet \t- ERROR, element name not in database");
+        return;
+    }
+    TableData* sdata = st_search(db, set);
+    if(sdata == NULL){
+        perror("addToSet \t- ERROR, set name not in database symbol table");
+        return;
+    }
+    if(db->sets[sdata->index] == NULL){
+        perror("addToSet \t- ERROR, set not in database");
+        return;
+    }
+    long index = edata->index % sizeof(uint64_t);
+    db->sets[sdata->index][index] = db->sets[sdata->index][index] | 1 << edata->index/sizeof(uint64_t);
+}
 
 
 
@@ -112,12 +146,12 @@ void printDB(Database* db){
     printf("universe size: %ld\n", db->universeSize);
     printf("setAmount size: %ld\n", db->setAmount);
     printf("attrAmount size: %ld\n", db->attrAmount);
-    print_table(db->symbolTable);
-    char** keys = st_getKeys(db->symbolTable);
+    print_table(db->setNamesTable);
+    char** keys = st_getKeys(db->setNamesTable);
     int i = 0;
     while (keys[i] != NULL)
     {
-        TableData* data = (TableData*)st_search(db->symbolTable, keys[i]);
+        TableData* data = (TableData*)st_search(db->setNamesTable, keys[i]);
         int index = data->index;
         int* set = db->sets[index];
         printf("\nset %s\n[", keys[i]);

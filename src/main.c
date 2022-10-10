@@ -4,7 +4,11 @@
 int main(void)
 {
 	printf("Hello world!\n");
-	Database* db = createEmptyDB(100, 3, 3); 
+	char elem[][50] = {
+		"hye",
+		"hej"
+	};
+	Database* db = createEmptyDB(100, 3, 3, elem); 
 
 	char input[] = "meeeme";
 	addEmptySet(db, input);
