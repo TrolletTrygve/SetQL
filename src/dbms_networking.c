@@ -212,7 +212,7 @@ int dbms_networking_initialize(uint16_t port)
 	FD_SET(server_socket, &readfds);
 
 	opt = 1;
-	opt_name = SO_REUSEADDR;// | SO_REUSEPORT;
+	opt_name = SO_REUSEADDR;
 	size = sizeof(opt);
 	res = setsockopt(server_socket, SOL_SOCKET,opt_name, (void*)&opt, size);
 	if (res)
@@ -296,9 +296,6 @@ int dbms_start(void)
 				max_sd = client_sockets[i];
 		}
 
-
-
-		printf("start\n");
 		ready = select(max_sd+1, &readfds, NULL, NULL, NULL);
 
 		if (ready == -1)
