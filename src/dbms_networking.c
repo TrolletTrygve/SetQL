@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
-#include <fcntl.h>
 
 #ifdef _WIN32
   	#ifndef _WIN32_WINNT
@@ -12,6 +11,7 @@
 #else
   	#include <sys/socket.h>
 	#include <sys/select.h>
+	#include <sys/ioctl.h>
  	#include <arpa/inet.h>
   	#include <netdb.h>
 #endif
@@ -129,6 +129,8 @@ static int kill_client(int index)
 		perror("close");
 		return 0;
 	}
+
+	FD_CLR(client_sockets[index], &readfds);
 
 	if (index == 0)
 		client_sockets[index] = 0;
@@ -277,7 +279,7 @@ int dbms_start(void)
 
 		if (ready == -1)
 		{
-			perror("poll");
+			perror("select");
 			return 0;
 		}
 
