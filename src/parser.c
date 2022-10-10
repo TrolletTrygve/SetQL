@@ -33,6 +33,15 @@ static void modify_array_list(array_list* a_list, const char** values[], size_t 
     a_list->values = copy;
 }
 
+static void modify_set(set* s, const char* name, const char*** values, size_t length, size_t key_data_types_length) {
+    strcpy(s->name, name);
+    modify_array_list(&s->key_values, values, length, key_data_types_length);
+}
+
+static void modify_u_set(universe u, size_t set_index, const char* name, const char*** values, size_t length) {
+    modify_set(&u.sets[set_index], name, values, length, u.key_data_type_names.length);
+}
+
 universe create_universe_example(void){     // TODO
     universe u;
     // Set universe name
@@ -59,10 +68,18 @@ universe create_universe_example(void){     // TODO
     const char* attribute_value_1[] = {"\"Chicken\"", "25000000000"};
     const char* attribute_value_2[] = {"\"Bat\"", "3000000000"};
     const char* attribute_value_3[] = {"\"Crow\"", "100000"};
-    const char** attribute_values[] = {attribute_value_1, attribute_value_2, attribute_value_3};
+    const char** attribute_values[] = {attribute_value_1, attribute_value_2, attribute_value_3}; // {{'"crow"', '100000'}, {'"chicken"', '25000000000'}, {'"bat"', '3000000000'}};
     modify_array_list(&u.attribute_values, attribute_values, 3, u.attribute_data_type_names.length);
-
-    //const char** attributes[] = {{'"crow"', '100000'}, {'"chicken"', '25000000000'}, {'"bat"', '3000000000'}};
+    
+    // We allocate memory for 2 Sets
+    u.sets_length = 2;
+    u.sets = (set*)malloc(u.sets_length * sizeof(set));
+    // We create the Set "Bird"
+    const char** set0_values[] = {key_value_1, key_value_3}; // {{"\"Gallus gallus domesticus\""}, {"\"Corvus\""}}
+    modify_u_set(u, 0, "Bird", set0_values, 2);
+    // We create the Set "CanFly"
+    const char** set1_values[] = {key_value_2, key_value_3}; // {{"\"Chiroptera\""}, {"\"Corvus\""}}
+    modify_u_set(u, 1, "CanFly", set1_values, 2);
 
     return u;
 }
@@ -106,6 +123,19 @@ void print_string_list(string_list strings){
     printf("]");
 }
 
+static void print_set(universe u, size_t set_index) {
+    set* s = &u.sets[set_index];
+    printf("Set %s: ", s->name);
+    print_array_list(s->key_values, u.key_data_type_names.length);
+}
+
+static void print_sets(universe u) {
+    for (size_t i = 0; i < u.sets_length; i++) {
+        print_set(u, i);
+        printf("\n");
+    }
+}
+
 void print_universe(universe u){            // TODO
     printf("Universe name: %s", u.name);
     printf("\n\n");
@@ -130,4 +160,8 @@ void print_universe(universe u){            // TODO
     printf("Attribute values: ");
     print_attribute_values(u);
     printf("\n\n");
+
+    printf("Sets: \n");
+    print_sets(u);
+    printf("\n");
 }

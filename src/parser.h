@@ -12,7 +12,7 @@ typedef struct {
 } string_list;
 
 typedef struct {
-    char*** values;                 // E.g. [['crow', 'chicken', 'bat'], [100000, 25000000000, 3000000000]]
+    char*** values;                 // E.g. [["crow", 100000], ["chicken", 25000000000], ["bat", 3000000000]]
     size_t length;                  // E.g. 3
 } array_list;
 
@@ -23,13 +23,14 @@ typedef struct {
 
 typedef struct {
     char name[50];
-    set *sets;
     string_list key_data_type_names;        // E.g. {['STRING'], 1}
     string_list key_data_names;             // E.g. {['scientific_name'], 1}
     string_list attribute_data_type_names;  // E.g. {['STRING', 'INTEGER'], 2}
     string_list attribute_data_names;       // E.g. {['name', 'population'], 2}
     array_list key_values;
     array_list attribute_values;
+    set *sets;
+    size_t sets_length;
 } universe;
 
 universe create_universe_example(void); // TODO
