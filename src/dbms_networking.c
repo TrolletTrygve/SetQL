@@ -124,11 +124,19 @@ static int accept_connection(void)
  */
 static int kill_client(int index)
 {
-	if (close(client_sockets[index]) == -1)
-	{
-		perror("close");
-		return 0;
-	}
+	#ifdef _WIN32
+		if (closesocket(client_sockets[index]) != 0)
+		{
+			fprintf(stderr, "Error: closesocket\n");
+			return 0;
+		}
+	#else
+		if (close(client_sockets[index]) == -1)
+		{
+			perror("close");
+			return 0;
+		}
+	#endif
 
 	FD_CLR(client_sockets[index], &readfds);
 
@@ -274,8 +282,24 @@ int dbms_start(void)
 	int ready = 0, should_exit = 0, i;
 	while (!should_exit)
 	{
+		// Clear and insert to FD_SET and find the highest socket number
+		int max_sd = server_socket;
+
+		FD_ZERO(&readfds);
+		FD_SET(server_socket, &readfds);
+		for (i = 0; i < client_count; i++)
+		{
+			if (client_sockets[i] > 0)
+				FD_SET(client_sockets[i], &readfds);
+
+			if (client_sockets[i] > max_sd)
+				max_sd = client_sockets[i];
+		}
+
+
+
 		printf("start\n");
-		ready = select(9, &readfds, NULL, NULL, NULL);
+		ready = select(max_sd+1, &readfds, NULL, NULL, NULL);
 
 		if (ready == -1)
 		{
