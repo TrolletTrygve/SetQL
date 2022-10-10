@@ -2,7 +2,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
-//#include <sys/ioctl.h>
 
 #ifdef _WIN32
   	#ifndef _WIN32_WINNT
@@ -12,12 +11,13 @@
   	#include <Ws2tcpip.h>
 #else
   	#include <sys/socket.h>
+	#include <sys/select.h>
  	#include <arpa/inet.h>
-	#include <poll.h>
   	#include <netdb.h>
 #endif
 
 #include "dbms_networking.h"
+
 
 #define HOST_SOCKET		0
 #define MAX_CLIENTS 	8
@@ -27,8 +27,16 @@
 static int dbms_started = 0;
 static struct sockaddr_in address;
 
-static int pfd_count = 0;
-static struct pollfd pfds[MAX_CLIENTS];
+//static int pfd_count = 0;
+//static struct pollfd pfds[MAX_CLIENTS];
+
+
+int server_socket;
+int client_sockets[MAX_CLIENTS];
+int client_count;
+
+fd_set readfds;
+
 
 
 /**
@@ -81,7 +89,7 @@ static int accept_connection(void)
 	int struct_size 	= sizeof(struct sockaddr_in);
     socklen_t* addrlen 	= (socklen_t*)(&struct_size);
 
-    new_client = accept(pfds[0].fd, (struct sockaddr*)&address, addrlen);
+    new_client = accept(server_socket, (struct sockaddr*)&address, addrlen);
     if (new_client < 0)
     {
     	perror("accept");
@@ -98,35 +106,35 @@ static int accept_connection(void)
     	return 0;
     }
 
-    pfds[pfd_count].fd 		= new_client;
-    pfds[pfd_count].events 	= POLLIN;
-    pfd_count++;
+    client_sockets[client_count] = new_client;
+    FD_SET(new_client, &readfds);
+    client_count++;
 
 	return 1;
 }
 
 
 /**
- *	kill_pfd(index)
+ *	kill_client(index)
  * 
  * 	closes a client socket and reorganizes the socket array
  * 	
  * 	argument 0:	The index of the socket to kill
  * 	returns:	1 on success 0 on fail
  */
-static int kill_pfd(int index)
+static int kill_client(int index)
 {
-	if (close(pfds[index].fd) == -1)
+	if (close(client_sockets[index]) == -1)
 	{
 		perror("close");
 		return 0;
 	}
 
 	if (index == 0)
-		pfds[index].fd = 0;
+		client_sockets[index] = 0;
 	else
-		pfds[index].fd = pfds[pfd_count-1].fd;
-	pfd_count--;
+		client_sockets[index] = client_sockets[client_count-1];
+	client_count--;
 
 	return 1;
 }
@@ -144,10 +152,10 @@ static int kill_pfd(int index)
  */
 static int handle_message(int index)
 {
-	unsigned char buffer[128];
+	char buffer[128];
 	int result;
 
-	result = recv(pfds[index].fd, buffer, 128, 0);
+	result = recv(client_sockets[index], buffer, 128, 0);
 	if (result < 0)
 	{
 		perror("recv");
@@ -155,9 +163,9 @@ static int handle_message(int index)
 	}
 	if (result == 0)
 	{
-		if (!kill_pfd(index))
+		if (!kill_client(index))
 		{
-			fprintf(stderr, "%s\n", "Error: kill_pfd");
+			fprintf(stderr, "%s\n", "Error: kill_client");
 			return 0;
 		}
 		return 1;
@@ -178,55 +186,61 @@ static int handle_message(int index)
  * 	Argument 0:	The desired port to use when connecting to the server
  * 	Returns:	1 on success, 0 on fail
  */
-int dbms_networking_initialize(uint16_t  port)
+int dbms_networking_initialize(uint16_t port)
 {
 	int res, opt, opt_name, size;
 	sock_init();
 
-	pfds[0].fd = socket(AF_INET, SOCK_STREAM, 0);
-	if (pfds[0].fd < 0)
+	server_socket = socket(AF_INET, SOCK_STREAM, 0);
+	if (server_socket < 0)
 	{
 		perror("socket");
 		return 0;
 	}
-	pfds[0].events = POLLIN;
-	pfd_count = 1;
+
+	FD_ZERO(&readfds);
+	FD_SET(server_socket, &readfds);
 
 	opt = 1;
 	opt_name = SO_REUSEADDR;// | SO_REUSEPORT;
 	size = sizeof(opt);
-	res = setsockopt(pfds[0].fd, SOL_SOCKET,opt_name, (void*)&opt, size);
+	res = setsockopt(server_socket, SOL_SOCKET,opt_name, (void*)&opt, size);
 	if (res)
 	{
 		perror("setsockopt");
 		return 0;
 	}
 
-
-	// TODO: Make server socket non-blocking with fcntl()
-	/*
-	res = ioctl(pfds[0].fd, FIONBIO, (void*)&opt);
-	if (res < 0)
-	{
-		perror("ioctl");
-		return 0;
-	}
-	*/
-
-
+	#ifdef _WIN32
+		res = ioctlsocket(server_socket, FIONBIO, (void*)&opt);
+		if (res != 0)
+		{
+			fprintf(stderr, "Error: ioctlsocket with code: %d\n", res);
+			return 0;
+		}
+	#else
+		res = ioctl(server_socket, FIONBIO, (void*)&opt);
+		if (res < 0)
+		{
+			perror("ioctl");
+			return 0;
+		}
+	#endif
+	
+	
 	address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(port);
 
     size = sizeof(struct sockaddr_in);
-    res = bind(pfds[0].fd, (struct sockaddr*)&address, size);
+    res = bind(server_socket, (struct sockaddr*)&address, size);
     if (res < 0)
     {
     	perror("bind");
     	return 0;
     }
 
-    res = listen(pfds[0].fd, 4);
+    res = listen(server_socket, 4);
     if (res < 0)
     {
     	perror("listen");
@@ -259,7 +273,8 @@ int dbms_start(void)
 	while (!should_exit)
 	{
 		printf("start\n");
-		ready = poll(pfds, pfd_count, -1);
+		ready = select(9, &readfds, NULL, NULL, NULL);
+
 		if (ready == -1)
 		{
 			perror("poll");
@@ -268,15 +283,29 @@ int dbms_start(void)
 
 		printf("Ready: %d\n", ready);
 
-		if (pfds[0].revents != 0)
+		if (FD_ISSET(server_socket, &readfds))
 		{
 			if (!accept_connection())
 			{
-				fprintf(stderr, "%s\n", "Error, accept_connection");
+				fprintf(stderr, "%s\n", "Error: accept_connection");
 				return 0;
 			}
 		}
 
+		for (i = 0; i < client_count; i++)
+		{
+			if (FD_ISSET(client_sockets[i], &readfds))
+			{
+				printf("something happened\n");
+				if (!handle_message(i))
+				{
+					fprintf(stderr, "%s\n", "Error: handle_message");
+					return 0;
+				}
+			}
+		}
+
+		/*
 		for (i = 1; i < pfd_count; i++)
 		{
 			if (pfds[i].revents != 0)
@@ -301,6 +330,7 @@ int dbms_start(void)
 				}
 			} 
 		}
+		*/
 	}
 
 
@@ -325,7 +355,7 @@ int dbms_networking_kill(void)
 		return 0;
 	}
 
-	close(pfds[0].fd);	
+	close(server_socket);	
 
 	dbms_started = 0;
 	return sock_quit();
