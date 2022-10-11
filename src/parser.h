@@ -27,10 +27,10 @@ typedef struct {
     string_list key_data_names;             // E.g. {['scientific_name'], 1}
     string_list attribute_data_type_names;  // E.g. {['STRING', 'INTEGER'], 2}
     string_list attribute_data_names;       // E.g. {['name', 'population'], 2}
-    array_list key_values;
-    array_list attribute_values;
-    set *sets;
-    size_t sets_length;
+    array_list key_values;                  // E.g. [["Gallus gallus domesticus"], ["Chiroptera"], ["Corvus"]]
+    array_list attribute_values;            // E.g. [["crow", 100000], ["chicken", 25000000000], ["bat", 3000000000]]
+    set *sets;                              // E.g. [Set{name: "Bird", key_values: [["Gallus gallus domesticus"], ["Corvus"]}, Set{name: "CanFly", key_values: [["Corvus"]}]
+    size_t sets_length;                     // E.g. 2
 } universe;
 
 universe create_universe_example(void);
@@ -39,6 +39,6 @@ void print_universe(universe u);
 
 void print_string_list(string_list strings);
 
-universe parse_initialization(const char* file_name);    // TODO
+int parse_initialization(universe* u, const char* file_name);    // TODO
 
 #endif
