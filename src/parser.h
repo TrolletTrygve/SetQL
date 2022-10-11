@@ -33,10 +33,12 @@ typedef struct {
     size_t sets_length;
 } universe;
 
-universe create_universe_example(void); // TODO
+universe create_universe_example(void);
 
-void print_universe(universe u);    // TODO
+void print_universe(universe u);
 
 void print_string_list(string_list strings);
+
+universe parse_initialization(const char* file_name);    // TODO
 
 #endif

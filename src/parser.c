@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 static char** copy_string_array(const char* strings[], size_t length) {
     char** copy = (char**)malloc(length * sizeof(char*));
@@ -164,4 +165,43 @@ void print_universe(universe u){            // TODO
     printf("Sets: \n");
     print_sets(u);
     printf("\n");
+}
+
+
+// Count the amounts of times a character apperas in a string
+static int count_chars(char* str, char c) {
+    int count = 0;
+    for (int i = 0; str[i]; i++) {
+        count += (str[i] == c);
+    }
+    return count;
+}
+
+static int count_lines(char* str) {
+    return count_chars(str, '\n');
+}
+/*
+static void parse_universe_definition(void) {
+
+}*/
+
+universe parse_initialization(const char* file_name) {
+    universe u;
+
+    FILE* ptr = fopen(file_name, "r");
+    assert(ptr != NULL); // Check that the file exists
+
+    size_t buffer_size = 1024;
+    char* buffer = (char*) malloc(buffer_size);
+    int line = 1;
+
+    while (fscanf(ptr, "%[^;];", buffer) == 1) {
+        printf("<LINE %i>", line);
+        printf("%s<SEMICOLON>", buffer);
+        line += count_lines(buffer);
+    }
+
+    free(buffer);
+
+    return u;
 }
