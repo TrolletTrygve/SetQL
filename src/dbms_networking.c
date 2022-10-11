@@ -27,9 +27,6 @@
 static int dbms_started = 0;
 static struct sockaddr_in address;
 
-//static int pfd_count = 0;
-//static struct pollfd pfds[MAX_CLIENTS];
-
 
 int server_socket;
 int client_sockets[MAX_CLIENTS];
@@ -327,33 +324,6 @@ int dbms_start(void)
 				}
 			}
 		}
-
-		/*
-		for (i = 1; i < pfd_count; i++)
-		{
-			if (pfds[i].revents != 0)
-			{
-				if (pfds[i].revents & POLLIN)
-				{
-					printf("something happened\n");
-					if (!handle_message(i))
-					{
-						fprintf(stderr, "%s\n", "Error, handle_message");
-						return 0;
-					}
-				}
-				else
-				{
-					// something went wrong
-					if (!kill_pfd(index))
-					{
-						fprintf(stderr, "%s\n", "Error: kill_pfd");
-						return 0;
-					}
-				}
-			} 
-		}
-		*/
 	}
 
 
