@@ -18,23 +18,27 @@
 
 #include "dbms_networking.h"
 
-
-#define HOST_SOCKET		0
 #define MAX_CLIENTS 	8
 #define DEFAULT_PORT 	8080
 
+#define CLIENT_TYPE_SOCKET	0
+#define CLIENT_TYPE_PIPE	1
 
 static int dbms_started = 0;
 static struct sockaddr_in address;
+static int server_socket;
 
+// Client information
+static struct sockaddr_in client_addresses[MAX_CLIENTS];
+	
+static int client_types		[MAX_CLIENTS];
+static int client_read_fds	[MAX_CLIENTS];
+static int client_write_fds	[MAX_CLIENTS];
+static int client_count;
 
-int server_socket;
-int client_sockets[MAX_CLIENTS];
-int client_count;
+static fd_set readfds;
 
-fd_set readfds;
-
-
+static message_func_p message_function;
 
 /**
  * 	sock_init()
@@ -86,14 +90,21 @@ static int accept_connection(void)
 	int struct_size 	= sizeof(struct sockaddr_in);
     socklen_t* addrlen 	= (socklen_t*)(&struct_size);
 
-    new_client = accept(server_socket, (struct sockaddr*)&address, addrlen);
+    struct sockaddr_in incomming_address;
+    struct sockaddr* incomming_address_p = (struct sockaddr*)&incomming_address;
+
+    new_client = accept(server_socket, incomming_address_p, addrlen);
     if (new_client < 0)
     {
     	perror("accept");
     	return 0;
     }
 
-    printf("New connection!\n");
+    char str[INET_ADDRSTRLEN];
+	inet_ntop(AF_INET, &incomming_address.sin_addr, str, INET_ADDRSTRLEN);
+	printf("%s\n", str);
+
+	printf("New connection from %s!\n", str);
 
     const char* msg = "Hejsan!";
     result = send(new_client, msg, strlen(msg), 0);
@@ -103,7 +114,11 @@ static int accept_connection(void)
     	return 0;
     }
 
-    client_sockets[client_count] = new_client;
+    client_addresses[client_count] 	= incomming_address; 
+   	
+   	client_types[client_count]		= CLIENT_TYPE_SOCKET;
+    client_read_fds[client_count] 	= new_client;
+    client_write_fds[client_count] 	= new_client;
     FD_SET(new_client, &readfds);
     client_count++;
 
@@ -119,28 +134,56 @@ static int accept_connection(void)
  * 	argument 0:	The index of the socket to kill
  * 	returns:	1 on success 0 on fail
  */
-static int kill_client(int index)
+static int kill_client(client_id id)
 {
-	#ifdef _WIN32
-		if (closesocket(client_sockets[index]) != 0)
-		{
-			fprintf(stderr, "Error: closesocket\n");
-			return 0;
-		}
-	#else
-		if (close(client_sockets[index]) == -1)
-		{
-			perror("close");
-			return 0;
-		}
-	#endif
+	switch(client_types[id])
+	{
+		case CLIENT_TYPE_SOCKET:
+			#ifdef _WIN32
+				if (closesocket(client_read_fds[id]) != 0)
+				{
+					fprintf(stderr, "Error: closesocket\n");
+					return 0;
+				}
+			#else
+				if (close(client_read_fds[id]) == -1)
+				{
+					perror("close");
+					return 0;
+				}
+			#endif
+		break;
 
-	FD_CLR(client_sockets[index], &readfds);
+		case CLIENT_TYPE_PIPE:
+			if (close(client_read_fds[id]) == -1)
+			{
+				perror("read pipe close");
+				return 0;
+			}
+			if (close(client_write_fds[id]) == -1)
+			{
+				perror("rwite pipe close");
+				return 0;
+			}
+		break;
 
-	if (index == 0)
-		client_sockets[index] = 0;
+		default:
+			fprintf(stderr, "%s\n", "Error: unknown client type");
+			return 0;
+		break;
+	}
+
+	FD_CLR(client_read_fds[id], &readfds);
+
+	if (id == 0)
+		client_read_fds[id] = 0;
 	else
-		client_sockets[index] = client_sockets[client_count-1];
+	{
+		client_types[id]		= client_types[client_count-1];
+		client_read_fds[id] 	= client_read_fds[client_count-1];
+		client_write_fds[id]	= client_write_fds[client_count-1];
+		client_addresses[id]	= client_addresses[client_count-1];
+	}
 	client_count--;
 
 	return 1;
@@ -157,12 +200,26 @@ static int kill_client(int index)
  * 	argument 0:	The index of the socket to recieve data from
  * 	returns:	1 on success, 0 on fail
  */
-static int handle_message(int index)
+static int handle_message(client_id id)
 {
 	char buffer[128];
 	int result;
 
-	result = recv(client_sockets[index], buffer, 128, 0);
+	// Checks the client type and handles the message accordingly
+	switch(client_types[id])
+	{
+		case CLIENT_TYPE_SOCKET:
+			result = recv(client_read_fds[id], buffer, 128, 0);
+		break;
+		case CLIENT_TYPE_PIPE:
+			result = read(client_read_fds[id], buffer, 128);
+		break;
+		default:
+			fprintf(stderr, "%s\n", "Error: unknown client type");
+			return 0;
+		break;
+	}
+
 	if (result < 0)
 	{
 		perror("recv");
@@ -170,16 +227,17 @@ static int handle_message(int index)
 	}
 	if (result == 0)
 	{
-		if (!kill_client(index))
+		if (!kill_client(id))
 		{
 			fprintf(stderr, "%s\n", "Error: kill_client");
 			return 0;
 		}
 		return 1;
 	}
-
 	buffer[result] = '\0';
-	printf("Message recieved: %s, with length %d\n", buffer, result);
+
+	// Call message handle function
+	(*message_function)(buffer, result, id);
 
 	return 1;
 }
@@ -193,7 +251,7 @@ static int handle_message(int index)
  * 	Argument 0:	The desired port to use when connecting to the server
  * 	Returns:	1 on success, 0 on fail
  */
-int dbms_networking_initialize(uint16_t port)
+int dbms_networking_initialize(uint16_t port, message_func_p message_handler)
 {
 	int res, opt, opt_name, size;
 	sock_init();
@@ -254,8 +312,43 @@ int dbms_networking_initialize(uint16_t port)
     	return 0;
     }
 
+    message_function = message_handler;
     dbms_started = 1;
     return 1;
+}
+
+/**
+ * 	dbms_networking_add_pipe_client(read_fd, write_fd)
+ * 	
+ * 	Adds a pipe client to be checked for input just as a socket
+ * 	This allows for input to the server from the terminal
+ * 	
+ * 	argument 0:	The pipe file descriptor to read from
+ * 	argument 1: The pipe file descriptor to write to
+ * 	returns:	1 on success, 0 on fail
+ */ 
+int dbms_networking_add_pipe_client(int read_fd, int write_fd)
+{
+	if (!dbms_started)
+	{
+		fprintf(stderr, "%s", "Error: dbms_networking_add_pipe_client, ");
+		fprintf(stderr, "%s\n", "DBMS has not been initialized");
+		return 0;
+	}
+
+	if (client_count+1 >= MAX_CLIENTS)
+	{
+		fprintf(stderr, "%s", "Error: dbms_networking_add_pipe_client, ");
+		fprintf(stderr, "%s\n", "Too many clients");
+		return 0;
+	}
+
+	client_types  		[client_count] = CLIENT_TYPE_PIPE;
+	client_read_fds		[client_count] = read_fd;
+	client_write_fds	[client_count] = write_fd;
+	client_count++;
+
+	return 1;
 }
 
 
@@ -286,11 +379,11 @@ int dbms_start(void)
 		FD_SET(server_socket, &readfds);
 		for (i = 0; i < client_count; i++)
 		{
-			if (client_sockets[i] > 0)
-				FD_SET(client_sockets[i], &readfds);
+			if (client_read_fds[i] > 0)
+				FD_SET(client_read_fds[i], &readfds);
 
-			if (client_sockets[i] > max_sd)
-				max_sd = client_sockets[i];
+			if (client_read_fds[i] > max_sd)
+				max_sd = client_read_fds[i];
 		}
 
 		ready = select(max_sd+1, &readfds, NULL, NULL, NULL);
@@ -300,8 +393,6 @@ int dbms_start(void)
 			perror("select");
 			return 0;
 		}
-
-		printf("Ready: %d\n", ready);
 
 		if (FD_ISSET(server_socket, &readfds))
 		{
@@ -314,7 +405,7 @@ int dbms_start(void)
 
 		for (i = 0; i < client_count; i++)
 		{
-			if (FD_ISSET(client_sockets[i], &readfds))
+			if (FD_ISSET(client_read_fds[i], &readfds))
 			{
 				printf("something happened\n");
 				if (!handle_message(i))
@@ -325,7 +416,6 @@ int dbms_start(void)
 			}
 		}
 	}
-
 
 	return 1;
 }
@@ -348,7 +438,11 @@ int dbms_networking_kill(void)
 		return 0;
 	}
 
-	close(server_socket);	
+	#ifdef _WIN32
+		closesocket(server_socket);	
+	#else
+		close(server_socket);	
+	#endif
 
 	dbms_started = 0;
 	return sock_quit();
