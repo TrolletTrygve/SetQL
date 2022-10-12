@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include "datastructures/symbolTable.h"
+#include "datastructures/symBOlTAble.h"
 
 /**
  * defines types as integers (same purpose as enum)

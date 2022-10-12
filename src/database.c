@@ -14,12 +14,10 @@
 #define BITNSLOTS(nb) ((nb + CHAR_BIT - 1) / CHAR_BIT)
 
 /* local functions */
-int findFirstEmptySetIndex(Database* db);
-void printSets(Database* db);
-void printAttributes(Database* db);
-int typeSize(int type);
-void printBits(int size, uint64_t value);
-
+static void printSets(Database* db);
+static void printAttributes(Database* db);
+static int typeSize(int type);
+static void printBits(int size, uint64_t value);
 
 
 
@@ -67,22 +65,6 @@ Database* createEmptyDB(long maxUniverseSize, long maxSetSize, long maxAttrSize)
 
 
 /**
- * @brief find first free index among sets in database
- * 
- * @param db 
- * @return int index, or -1 if no index was found
- */
-int findFirstEmptySetIndex(Database* db){
-    for (long i = 0; i < db->setCount; i++){
-        if(db->sets[i] == NULL){
-            return i;
-        }
-    }
-
-    return -1;
-}
-
-/**
  * @brief adds new set to the database initialized with 0
  * 
  * @param db database to add set to
@@ -112,6 +94,13 @@ void db_createSet(Database* db, char*name){
 }
 
 
+/**
+ * @brief removes a key from a set 
+ * Switches a bit to 0 at the index of the key given by the keyTable in the database
+ * @param db Database to use
+ * @param set name of the set
+ * @param key name of the key to remove
+ */
 void db_removeFromSet(Database* db, char*set, char*key){
     TableData* edata = st_search(db->keyTable, key);
 
@@ -138,7 +127,13 @@ void db_removeFromSet(Database* db, char*set, char*key){
 }
 
 
-
+/**
+ * @brief Adds one element to the set 
+ * Switches one bit in the set to a 1 on the index corresponding to the element.
+ * @param db Database to use
+ * @param set name of the set to add element to
+ * @param key name of the key
+ */
 void db_addToSet(Database* db, char* set, char* key){
     printf("db_addToSet \t- adding %s to set %s", key, set);
     TableData* edata = st_search(db->keyTable, key);
@@ -167,6 +162,13 @@ void db_addToSet(Database* db, char* set, char* key){
     db->sets[sdata->index][index2] |= (uint64_t)1 << index;
 }
 
+/**
+ * @brief Adds a new key to the database. Can't have the same name as another
+ * key.
+ * 
+ * @param db Database to add key to
+ * @param name Name of the key
+ */
 void db_addKey(Database* db, char*name){
     printf("db_addKey \t- adding key '%s'\n", name);
     if(strlen(name) < 1){
@@ -289,6 +291,14 @@ void printBits(int size, uint64_t value){
     }
 }
 
+
+/**
+ * @brief Converts a type to the size of that type in bytes
+ * Use the defines in the database.h file.
+ * 
+ * @param type type to get size of
+ * @return int size of the type, or -1 if string or undefined.
+ */
 int typeSize(int type){
     switch (type)
     {
