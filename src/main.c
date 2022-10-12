@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include "datastructures/database.h"
+#include "utils.h"
 
 int main(void)
 {
-	printf("Hello world!\n");
 	Database* db = createEmptyDB(200, 3, 3); 
 
 	char input[] = "coolsetname";
