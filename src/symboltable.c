@@ -125,10 +125,9 @@ void print_search(SymbolTable* table, char* ssn) {
 }
  
 void print_table(SymbolTable* table) {
-    printf("\nSymbol Table\n");
     for (int i=0; i<table->size; i++) {
         if (table->TableData[i]) {
-            printf("TableIndex:%d, SetIndex: %ld name:%s\n", i, table->TableData[i]->index, table->TableData[i]->name);
+            printf("TableIndex:%d, index: %ld name:%s\n", i, table->TableData[i]->index, table->TableData[i]->name);
         }
     }
 }

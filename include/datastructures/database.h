@@ -1,6 +1,6 @@
-
 #include <stdint.h>
 #include "datastructures/symbolTable.h"
+
 /**
  * defines types as integers (same purpose as enum)
  * used instead of enum in order to avoid different memory allocation for enums 
@@ -17,32 +17,57 @@
 
 
 
-union AttrUnion{
+
+/**
+ * @brief Union capable of storing different types of attribute data.
+ */
+typedef union{
     int8_t char_u[8];
     int16_t int_u[2];
     int64_t long_u;
-};
+}AttrUnion;
 
 
+/**
+ * @brief Attribute table, saves names and data associated with
+ * elements. 
+ */
 typedef struct{
-    uint64_t type;
-    union AttrUnion* data;
+    uint32_t type;
+    /* only used if TYPE_STRING */
+    uint32_t stringLength;
+    AttrUnion* data;
 } Attributes;
 
 
 /**
- * @brief Struct representing database
+ * @brief Struct representing database.
  */
 typedef struct{
+    /* Bitset, bit k set to 1 means element at index k is in that set.  */
     uint64_t**   sets;
+    /* holds attributes for elements (integers, strings...) */
     Attributes*  attributes;
+    /* symbol table with name as key */
     SymbolTable* setNamesTable;
+    /* attribute table with name as key to get index for that attribute table */
     SymbolTable* attrNamesTable;
-    SymbolTable* elemNamesTable;
+    /* element table with name as key to get index for element with that key */
+    SymbolTable* keyTable;
 
-    long                universeSize;
-    long                setAmount;
-    long                attrAmount;
+    /* max size and current size for the number of keys/elements in the DB */
+    long                maxKeyCount;
+    long                keyCount;
+
+    /* max size and current amount of sets in database */
+    long                maxSetSize;
+    long                setCount;;
+
+    /* max and current amout of attributes in database */
+    long                maxAttrSize;
+    long                attrCount;
+
+    long                stringSize;
 } Database;
 
 
@@ -55,12 +80,18 @@ typedef struct{
  * @param elementNames holds strings for all element names. Name of element i should be at index i.
  * @return struct Database pointer with allocated memory
  */
-Database* createEmptyDB(long universeSize, long setSize, long attrSize, char** elementNames);
+Database* createEmptyDB(long universeSize, long setSize, long attrSize);
 
-void addEmptySet(Database* db, char*name);
+void db_removeFromSet(Database* db, char*set, char*key);
 
-void addToSet(Database* db, char* set, char* element);
+void db_createSet(Database* db, char*name);
 
-void destroyDB(Database* db);
+void db_createAttribute(Database* db, char* name, int type, int stringSize);
 
-void printDB(Database* db);
+void db_addToSet(Database* db, char* set, char* element);
+
+void db_addKey(Database* db, char*name);
+
+void db_destroy(Database* db);
+
+void db_print(Database* db);
