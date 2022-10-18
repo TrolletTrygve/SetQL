@@ -3,8 +3,14 @@
 
 #include <stddef.h>
 
-//const char* DATA_TYPE_NAMES[] = {"STRING", "INTEGER"};
-//const size_t DATA_TYPE_NAMES_LENGTH = 2;
+#define NO_TYPE -1
+#define STRING_TYPE 1
+#define INTEGER_TYPE 2
+#define FLOAT_TYPE 3
+
+int type_name2data_type(const char* type_name);
+
+const char* data_type2type_name(int data_type);
 
 typedef struct {
     char **strings;
@@ -39,6 +45,7 @@ void print_universe(universe u);
 
 void print_string_list(string_list strings);
 
+// Note: This parser will not work with the char ';' inside of strings
 int parse_initialization(universe* u, const char* file_name);    // TODO
 
 #endif
