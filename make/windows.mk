@@ -16,7 +16,8 @@ WFLAGS 		= 	-Wall -Wmissing-include-dirs -Wswitch-default -Wswitch-enum  	\
 
 WNOFLAGS	=	-Wno-conversion -Wno-unused-result
 
-CXXFLAGS 	= $(INCLUDE) $(DBFLAGS) $(WFLAGS) $(WNOFLAGS)
+CXXFLAGS 		= $(INCLUDE) $(DBFLAGS) $(WFLAGS) $(WNOFLAGS)
+DEBUG_FLAGS 	= -DDEBUG
 
 
 all: init target
@@ -34,4 +35,4 @@ target: $(OBJS)
 
 
 %.o: $(SRC_DIR)\%.c
-	$(CC) "$<" $(CXXFLAGS) -c -o $@
+	$(CC) "$<" $(CXXFLAGS) $(DEBUG_FLAGS) -c -o $@
