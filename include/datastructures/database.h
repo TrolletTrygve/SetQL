@@ -18,13 +18,15 @@
 
 
 
+
 /**
  * @brief Union capable of storing different types of attribute data.
  */
 typedef union{
-    int8_t char_u[8];
-    int16_t int_u[2];
-    int64_t long_u;
+    uint8_t char_u[8];
+    uint16_t int_u[4];
+    uint32_t long_u[2];
+    uint64_t longlong_u;
 }AttrUnion;
 
 
@@ -66,8 +68,6 @@ typedef struct{
     /* max and current amout of attributes in database */
     long                maxAttrSize;
     long                attrCount;
-
-    long                stringSize;
 } Database;
 
 
@@ -82,13 +82,17 @@ typedef struct{
  */
 Database* createEmptyDB(long universeSize, long setSize, long attrSize);
 
+
+
 void db_removeFromSet(Database* db, char*set, char*key);
 
 void db_createSet(Database* db, char*name);
 
+void db_addToSet(Database* db, char* set, char* element);
+
 void db_createAttribute(Database* db, char* name, int type, int stringSize);
 
-void db_addToSet(Database* db, char* set, char* element);
+void db_setAttribute(Database* db, char* attrName, char* keyName, void* data);
 
 void db_addKey(Database* db, char*name);
 

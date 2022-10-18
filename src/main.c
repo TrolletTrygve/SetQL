@@ -16,12 +16,12 @@ int main(void)
 		db_addKey(db, dst);
 	}
 	
-	char key[] = "key110";
+	char key[] = "key68";
 
 	db_addToSet(db, input, key);
 
 	char attr[] = "attributetable";
-	db_createAttribute(db, attr, TYPE_8, -1);
+	db_createAttribute(db, attr, TYPE_64, -1);
 
 	db_print(db);
 
@@ -29,6 +29,6 @@ int main(void)
 
 	db_print(db);
 
-	db_destroy(db);
+	//db_destroy(db);
 	return 0;
 }

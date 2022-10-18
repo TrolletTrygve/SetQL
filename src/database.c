@@ -102,6 +102,7 @@ void db_createSet(Database* db, char*name){
  * @param key name of the key to remove
  */
 void db_removeFromSet(Database* db, char*set, char*key){
+    printf("db_removeFromSet \t- removing %s from set %s\n", key, set);
     TableData* edata = st_search(db->keyTable, key);
 
     if(edata == NULL){
@@ -135,7 +136,7 @@ void db_removeFromSet(Database* db, char*set, char*key){
  * @param key name of the key
  */
 void db_addToSet(Database* db, char* set, char* key){
-    printf("db_addToSet \t- adding %s to set %s", key, set);
+    printf("db_addToSet \t- adding %s to set %s\n", key, set);
     TableData* edata = st_search(db->keyTable, key);
     if(edata == NULL){
         errno = EINVAL;
@@ -155,9 +156,6 @@ void db_addToSet(Database* db, char* set, char* key){
     }
     long index = edata->index % (sizeof(uint64_t)*8);
     long index2 = edata->index / (sizeof(uint64_t)*8);
-    printf("\n\n");
-    printBits(64, 1<<10);
-    printf("\n\n");
 
     db->sets[sdata->index][index2] |= (uint64_t)1 << index;
 }
@@ -182,24 +180,71 @@ void db_addKey(Database* db, char*name){
 
 /**
  * @brief creates a new attribute table
+ * If type is TYPE_UNDEFINED the data block wont be allocated.
+ * Amount of elements in data depends on how many elements each attribute union can hold.
  * @param db database to create attribute table in
  * @param name name of the new table
  * @param type the datatype of the attributes to be stored
  * @param stringSize optional argument. Defines the maximum size of strings.
  */
 void db_createAttribute(Database* db, char* name, int type, int stringSize){
+    printf("db_createAttribute \t- name %s, type %d, with string size %d", name, type, stringSize);
+
     if(type == TYPE_STRING && stringSize < 1){
         errno = EINVAL;
         perror("db_createAttribute \t- type is TYPE_STRING but stringSize is < 1");
         return;
     }
 
+    size_t numberOfElements = 0;
+
+    switch (type)
+    {
+    case TYPE_8:        numberOfElements = db->keyCount/8;  break;
+    case TYPE_STRING:   numberOfElements = db->keyCount/8*stringSize;  
+                        db->attributes[db->attrCount].stringLength = stringSize;
+                        break;
+    case TYPE_16:       numberOfElements = db->keyCount/4;  break;
+    case TYPE_32:       numberOfElements = db->keyCount/2;  break;
+    case TYPE_64:       numberOfElements = db->keyCount;    break;
+    default: break;
+    }
     db->attributes[db->attrCount].type = type;
-    int size = typeSize(type);
-    if(size > 0){
-        db->attributes[db->attrCount].data = calloc(db->keyCount, size);
-        st_insert(db->attrNamesTable, name, db->attrCount);
-        db->attrCount++;
+    db->attributes[db->attrCount].data = calloc(numberOfElements, sizeof(AttrUnion));
+    st_insert(db->attrNamesTable, name, db->attrCount);
+    db->attrCount++;
+}
+
+
+
+
+void db_setAttribute(Database* db, char* attrName, char* keyName, void* data){
+    TableData* attrData = st_search(db->attrNamesTable, attrName);
+    long attrIndex = attrData->index;
+
+    TableData* keyData = st_search(db->keyTable, keyName);
+    long keyIndex = keyData->index;
+    int type = db->attributes[attrIndex].type;
+
+    switch (type)
+    {
+    case TYPE_8:        db->attributes[attrIndex].data[keyIndex/8].char_u[keyIndex%8] = *((uint8_t*) data);
+                        break;
+
+    case TYPE_STRING:   for (size_t i = 0; i < db->attributes[attrIndex].stringLength; i++){
+                            db->attributes[attrIndex].data[(keyIndex+i)/8].char_u[(keyIndex+i)%8] = *((uint8_t*) data);
+                        }
+                        break;
+
+    case TYPE_16:       db->attributes[attrIndex].data[keyIndex/4].int_u[keyIndex%4] = *((uint16_t*) data); 
+                        break;
+
+    case TYPE_32:       db->attributes[attrIndex].data[keyIndex/2].long_u[keyIndex%2] = *((uint32_t*) data); 
+                        break;
+
+    case TYPE_64:       db->attributes[attrIndex].data[keyIndex].longlong_u = *((uint64_t*) data);
+                        break;
+    default: break;
     }
 }
 
@@ -213,6 +258,7 @@ void db_createAttribute(Database* db, char* name, int type, int stringSize){
  */
 void db_destroy(Database* db){
     free(db);
+    printAttributes(db);
 }
 
 
@@ -259,7 +305,7 @@ void printSets(Database* db){
 }
 
 void printAttributes(Database* db){
-
+    
     char** keys = st_getKeys(db->attrNamesTable);
     int i = 0;
 
@@ -271,9 +317,21 @@ void printAttributes(Database* db){
 
         printf("\nAttribute %s\n[", keys[i]);
 
-        for (long j = 0; j < db->keyCount; j++){
-            long b = j % typeSize(attr.type);
-            AttrUnion k = attr.data[b];
+
+        long b = db->keyCount / (typeSize(attr.type)*8)+1;
+
+
+        for (long j = 0; j < b; j++){
+            AttrUnion k = attr.data[j];
+            switch (attr.type)
+            {
+            case TYPE_8:
+                printBits(typeSize(attr.type), (uint64_t) k.char_u);
+                break;
+            
+            default:
+                break;
+            }
             printf("%hhn,", k.char_u);
         }
         printf("]\n");
