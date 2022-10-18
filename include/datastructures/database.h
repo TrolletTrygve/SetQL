@@ -1,5 +1,8 @@
+#ifndef __DATABASE_H__
+#define __DATABASE_H__
+
 #include <stdint.h>
-#include "datastructures/symboltable.h"
+#include "datastructures/symBOlTAble.h"
 
 /**
  * defines types as integers (same purpose as enum)
@@ -99,3 +102,6 @@ void db_addKey(Database* db, char*name);
 void db_destroy(Database* db);
 
 void db_print(Database* db);
+
+
+#endif
