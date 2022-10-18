@@ -61,16 +61,16 @@ typedef struct{
     SymbolTable* keyTable;
 
     /* max size and current size for the number of keys/elements in the DB */
-    long                maxKeyCount;
-    long                keyCount;
+    uint64_t                maxKeyCount;
+    uint64_t                keyCount;
 
     /* max size and current amount of sets in database */
-    long                maxSetSize;
-    long                setCount;;
+    uint64_t                maxSetSize;
+    uint64_t                setCount;;
 
     /* max and current amout of attributes in database */
-    long                maxAttrSize;
-    long                attrCount;
+    uint64_t                maxAttrSize;
+    uint64_t                attrCount;
 } Database;
 
 
@@ -103,5 +103,6 @@ void db_destroy(Database* db);
 
 void db_print(Database* db);
 
+void db_test(void);
 
 #endif
