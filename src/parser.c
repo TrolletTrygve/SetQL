@@ -69,55 +69,6 @@ static char* str_concat(int n, ...)
     return new_str;
 }
 
-/*// Returns two string concatenated using malloc
-static char* concat2(const char* str1, const char* str2) {
-    if (str1 == NULL && str2 == NULL) return NULL;
-    if (str1 == NULL) return str_copy(str2);
-    if (str2 == NULL) return str_copy(str1);
-
-    char new_str[strlen(str1) + strlen(str2) + 1];
-    strcpy(new_str, str1);
-    strcat(new_str, str2);
-    return str_copy(new_str);
-}
-
-// Returns four string concatenated using malloc
-static char* concat4(const char* str1, const char* str2, const char* str3, const char* str4) {
-    char* new_str1 = concat2(str1, str2);
-    char* new_str2 = concat2(str3, str4);
-    char* new_str = concat2(new_str1, new_str2);
-    if (new_str1 != NULL)
-        free(new_str1);
-    if (new_str2 != NULL)
-        free(new_str2);
-    return new_str;
-}
-
-// Returns eight string concatenated using malloc
-static char* concat8(const char* str1, const char* str2, const char* str3, const char* str4, const char* str5, const char* str6, const char* str7, const char* str8) {
-    char* new_str1 = concat4(str1, str2, str3, str4);
-    char* new_str2 = concat4(str5, str6, str7, str8);
-    char* new_str = concat2(new_str1, new_str2);
-    if (new_str1 != NULL)
-        free(new_str1);
-    if (new_str2 != NULL)
-        free(new_str2);
-    return new_str;
-}
-
-// Returns sixteen string concatenated using malloc
-static char* concat16(const char* str1, const char* str2, const char* str3, const char* str4, const char* str5, const char* str6, const char* str7, const char* str8,
-                        const char* str9, const char* str10, const char* str11, const char* str12, const char* str13, const char* str14, const char* str15, const char* str16) {
-    char* new_str1 = concat8(str1, str2, str3, str4, str5, str6, str7, str8);
-    char* new_str2 = concat8(str9, str10, str11, str12, str13, str14, str15, str16);
-    char* new_str = concat2(new_str1, new_str2);
-    if (new_str1 != NULL)
-        free(new_str1);
-    if (new_str2 != NULL)
-        free(new_str2);
-    return new_str;
-} */
-
 static char** copy_string_array(const char** strings, size_t length) {
     char** copy = (char**)malloc(length * sizeof(char*));
     for (size_t i = 0; i < length; i++) {
