@@ -31,13 +31,13 @@ static void printAttributes(Database* db);
  * TODO: handle when user want's to increase size of database (setSize/attrSize)
  */
 Database* createEmptyDB(long maxUniverseSize, long maxSetSize, long maxAttrSize){
-    printf("createEmptyDB \t- allocate memory for database and symbol table\n");
+    DEBUG_CALL(printf("createEmptyDB \t- allocate memory for database and symbol table\n"));
     Database* db = malloc(sizeof(Database));
     db->setNamesTable = create_table(maxSetSize*1.3);
     db->attrNamesTable = create_table(maxAttrSize*1.3);
     db->keyTable = create_table(maxUniverseSize*1.3);
 
-    printf("createEmptyDB \t- store attributes\n");
+    DEBUG_CALL(printf("createEmptyDB \t- store attributes\n"));
     db->maxKeyCount =  maxUniverseSize;
     db->maxSetSize = maxSetSize;
     db->maxAttrSize = maxAttrSize;
@@ -46,12 +46,12 @@ Database* createEmptyDB(long maxUniverseSize, long maxSetSize, long maxAttrSize)
     db->setCount = 0;
     db->attrCount = 0;
 
-    printf("createEmptyDB \t- initializes sets\n");
+    DEBUG_CALL(printf("createEmptyDB \t- initializes sets\n"));
     db->sets = (bitset*)malloc(sizeof(bitset)*maxSetSize);
-    printf("createEmptyDB \t- initializes attr size %ld\n", sizeof(Attributes)*maxAttrSize);
+    DEBUG_CALL(printf("createEmptyDB \t- initializes attr size %ld\n", sizeof(Attributes)*maxAttrSize));
     db->attributes = malloc(sizeof(Attributes)*maxAttrSize);
 
-    printf("createEmptyDB \t- done\n");
+    DEBUG_CALL(printf("createEmptyDB \t- done\n"));
 
     return db;
 }
@@ -68,18 +68,25 @@ Database* createEmptyDB(long maxUniverseSize, long maxSetSize, long maxAttrSize)
  * TODO: handle when user adds more sets than the database has capacity for
  */
 void db_createSet(Database* db, char*name){
+
+    if(st_search(db->setNamesTable, name)!=NULL){
+        errno = EINVAL;
+        perror("db_createSet \t- set name already in use");
+        return;
+    }
+
     if(strlen(name) < 1){
         fprintf(stderr, "db_createSet \t- ERROR! %s needs to be above 0 character long\n", name);
         return;
     }
-    printf("db_createSet \t- adding set '%s'\n", name);
+    DEBUG_CALL(printf("db_createSet \t- adding set '%s'\n", name));
     uint64_t index = db->setCount;
-    printf("db_createSet \t- insert set at set index %ld\n", index);
+    DEBUG_CALL(printf("db_createSet \t- insert set at set index %ld\n", index));
     if(index >= db->maxSetSize){
         fprintf( stderr, "db_createSet \t- ERROR! Limit of amount of sets reached!\n");
         exit(0);
     }
-    printf("\t\t- st_insert\n");
+    DEBUG_CALL(printf("\t\t- st_insert\n"));
 
     st_insert(db->setNamesTable, name, index);
     
@@ -87,7 +94,7 @@ void db_createSet(Database* db, char*name){
 
     db->setCount++;
 
-    printf("\t\t- done!\n");
+    DEBUG_CALL(printf("\t\t- done!\n"));
 }
 
 
@@ -101,7 +108,7 @@ void db_createSet(Database* db, char*name){
  * @param key name of the key to remove
  */
 void db_removeFromSet(Database* db, char*set, char*key){
-    printf("db_removeFromSet \t- removing %s from set %s\n", key, set);
+    DEBUG_CALL(printf("db_removeFromSet \t- removing %s from set %s\n", key, set));
     TableData* edata = st_search(db->keyTable, key);
 
     if(edata == NULL){
@@ -138,7 +145,7 @@ void db_removeFromSet(Database* db, char*set, char*key){
  * @param key name of the key
  */
 void db_addToSet(Database* db, char* set, char* key){
-    printf("db_addToSet \t- adding %s to set %s\n", key, set);
+    DEBUG_CALL(printf("db_addToSet \t- adding %s to set %s\n", key, set));
     TableData* edata = st_search(db->keyTable, key);
     if(edata == NULL){
         errno = EINVAL;
@@ -174,7 +181,7 @@ void db_addToSet(Database* db, char* set, char* key){
  * @param name Name of the key
  */
 void db_addKey(Database* db, char*name){
-    printf("db_addKey \t- adding key '%s'\n", name);
+    DEBUG_CALL(printf("db_addKey \t- adding key '%s'\n", name));
     if(strlen(name) < 1){
         errno = EINVAL;
         perror("db_addKey \t- name of key must be longer than 0");
@@ -192,13 +199,19 @@ void db_addKey(Database* db, char*name){
  * @brief creates a new attribute table
  * If type is TYPE_UNDEFINED the data block wont be allocated.
  * Amount of elements in data depends on how many elements each attribute union can hold.
+ * Name must be unique.
  * @param db database to create attribute table in
  * @param name name of the new table
  * @param type the datatype of the attributes to be stored
  * @param stringSize optional argument. Defines the maximum size of strings.
  */
 void db_createAttribute(Database* db, char* name, int type, int stringSize){
-    printf("db_createAttribute \t- name %s, type %d, with string size %d\n", name, type, stringSize);
+    DEBUG_CALL(printf("db_createAttribute \t- name %s, type %d, with string size %d\n", name, type, stringSize));
+    if(st_search(db->attrNamesTable, name)!=NULL){
+        errno = EINVAL;
+        perror("db_createAttribute \t- attribute name already in use");
+        return;
+    }
 
     if(db->attrCount == db->maxAttrSize){
         fprintf(stderr, "db_createAttribute \t- cannot create more attribute tables in this database\n");
@@ -242,7 +255,7 @@ void db_createAttribute(Database* db, char* name, int type, int stringSize){
  *                  If string it must be smaller than the stringLength of the attribute table.
  */
 void db_setAttribute(Database* db, char* attrName, char* keyName, void* data){
-    printf("db_setAttribute \t- name %s, keyname %s\n", attrName, keyName);
+    DEBUG_CALL(printf("db_setAttribute \t- name %s, keyname %s\n", attrName, keyName));
 
     TableData* attrData = st_search(db->attrNamesTable, attrName);
     if(attrData==NULL){
@@ -336,6 +349,7 @@ void db_print(Database* db){
     printAttributes(db);
     printf("----------------------------------\n\n");
 }
+
 
 void printSets(Database* db){
     printf("\n");
@@ -436,6 +450,8 @@ void db_test(void){
 
 	char set[] = "coolsetname";
 	db_createSet(db, set);
+	db_createSet(db, set);
+	db_createSet(db, set);
 
 	// add keys
 	for (int i = 0; i < 150; i++){
@@ -450,6 +466,7 @@ void db_test(void){
 
 	char attr1[] = "attributetable_byte";
 	db_createAttribute(db, attr1, TYPE_8, -1);
+	db_createAttribute(db, attr1, TYPE_16, -1);
 	char attr2[] = "attributetable_int";
 	db_createAttribute(db, attr2, TYPE_16, -1);
 	char attr3[] = "attributetable_long";
