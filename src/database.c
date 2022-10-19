@@ -221,20 +221,30 @@ void db_createAttribute(Database* db, char* name, int type, int stringSize){
 void db_setAttribute(Database* db, char* attrName, char* keyName, void* data){
     printf("db_setAttribute \t- name %s, keyname %s\n", attrName, keyName);
     TableData* attrData = st_search(db->attrNamesTable, attrName);
+    TableData* keyData = st_search(db->keyTable, keyName);
 
     long attrIndex = attrData->index;
-    TableData* keyData = st_search(db->keyTable, keyName);
     long keyIndex = keyData->index;
     int type = db->attributes[attrIndex].type;
-    char* text = (char*)data;
     uint32_t strl = db->attributes[attrIndex].stringLength;
+
+    
+    char* text = (char*)data;
+    if(type == TYPE_STRING && strlen(text)> strl){
+        errno = EINVAL;
+        perror("db_setAttribute \t- string data longer than max string length in attribute table");
+        return;
+    }
+
+
+
     switch (type)
     {
     case TYPE_8:        db->attributes[attrIndex].data[keyIndex/8].char_u[keyIndex%8] = *((uint8_t*) data);
                         break;
 
     case TYPE_STRING:   for (size_t i = 0; i < strl; i++){
-                            db->attributes[attrIndex].data[(keyIndex*strl+i)/8].char_u[(keyIndex*strl+i)%8] = *((uint8_t*) text);
+                            db->attributes[attrIndex].data[(keyIndex*strl+i)/8].char_u[(keyIndex*strl+i)%8] =  text[0];
                             text++;
                         }
                         break;
@@ -337,7 +347,7 @@ void printAttributes(Database* db){
                 for (size_t k = 0; k < strl; k++){
                     char c = attr.data[(keyIndex*strl+k)/8].char_u[(keyIndex*strl+k)%8];
                     if(c != '\0') {
-                        printf("%c",attr.data[(keyIndex*strl+i)/8].char_u[(keyIndex*strl+i)%8]);
+                        printf("%c",c);
                     } else break;
                     
                 }
@@ -422,8 +432,13 @@ void db_test(void){
 	db_setAttribute(db, attr5, key, &data);
 
 
-    char datas[] = "pog";
+    char datas[] = "hej jag heter karl";
 	db_setAttribute(db, attr6, key, datas);
+
+    char datas2[] = "AAAABBBBEEEERRRRTTTTTT";
+    char key2[] = "key4";
+	db_setAttribute(db, attr6, key2, datas2);
+
 
 	db_print(db);
 
