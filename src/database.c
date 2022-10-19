@@ -91,6 +91,8 @@ void db_createSet(Database* db, char*name){
 }
 
 
+
+
 /**
  * @brief removes a key from a set 
  * Switches a bit to 0 at the index of the key given by the keyTable in the database
@@ -126,6 +128,8 @@ void db_removeFromSet(Database* db, char*set, char*key){
 }
 
 
+
+
 /**
  * @brief Adds one element to the set 
  * Switches one bit in the set to a 1 on the index corresponding to the element.
@@ -159,6 +163,9 @@ void db_addToSet(Database* db, char* set, char* key){
     //db->sets[sdata->index][index2] |= (uint64_t)1 << index;
 }
 
+
+
+
 /**
  * @brief Adds a new key to the database. Can't have the same name as another
  * key.
@@ -176,6 +183,10 @@ void db_addKey(Database* db, char*name){
     st_insert(db->keyTable, name, db->keyCount);
     db->keyCount++;
 }
+
+
+
+
 
 /**
  * @brief creates a new attribute table
@@ -221,11 +232,30 @@ void db_createAttribute(Database* db, char* name, int type, int stringSize){
 
 
 
-
+/**
+ * @brief Sets the value for an entry in one attribute table.
+ *  
+ * @param db        database
+ * @param attrName  name of the attribute table
+ * @param keyName   name of the element
+ * @param data      Integer or string depending on the TYPE of the attribute table. 
+ *                  If string it must be smaller than the stringLength of the attribute table.
+ */
 void db_setAttribute(Database* db, char* attrName, char* keyName, void* data){
     printf("db_setAttribute \t- name %s, keyname %s\n", attrName, keyName);
+
     TableData* attrData = st_search(db->attrNamesTable, attrName);
+    if(attrData==NULL){
+        errno = EINVAL;
+        perror("db_setAttribute \t- attrName not found in database");
+        return;
+    }
     TableData* keyData = st_search(db->keyTable, keyName);
+    if(keyData==NULL){
+        errno = EINVAL;
+        perror("db_setAttribute \t- keyName not found in database");
+        return;
+    }
 
     long attrIndex = attrData->index;
     long keyIndex = keyData->index;
@@ -414,7 +444,7 @@ void db_test(void){
 		db_addKey(db, dst);
 	}
 	
-	char key[] = "key5";
+	char key[] = "ke";
 
 	db_addToSet(db, set, key);
 
