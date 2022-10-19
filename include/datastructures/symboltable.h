@@ -1,3 +1,6 @@
+#ifndef __SYMBOLTABLE_H__
+#define __SYMBOLTABLE_H__
+
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,3 +37,5 @@ void print_search(SymbolTable* table, char* name);
 void print_table(SymbolTable* table);
 char** st_getKeys(SymbolTable* table);
 int getCount(SymbolTable* table);
+
+#endif 
