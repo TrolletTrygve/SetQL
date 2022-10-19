@@ -271,7 +271,6 @@ void db_setAttribute(Database* db, char* attrName, char* keyName, void* data){
  */
 void db_destroy(Database* db){
     free(db);
-    printAttributes(db);
 }
 
 
