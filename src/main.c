@@ -7,7 +7,7 @@ int main(void)
 	//print_universe(u);
 
 	universe u;
-	parse_initialization(&u, "C:\\Users\\Jose\\Documents\\Databases\\SET_DBMS\\initialization_example.txt");
+	parse_initialization(&u, "./initialization_example.txt");
 
 	print_universe(u);
 
