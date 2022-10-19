@@ -19,6 +19,8 @@ WNOFLAGS	=	-Wno-conversion -Wno-unused-result
 CXXFLAGS 		= $(INCLUDE) $(DBFLAGS) $(WFLAGS) $(WNOFLAGS)
 DEBUG_FLAGS 	= -DDEBUG
 
+LINKFLAGS 	= -lws2_32
+
 
 all: init target
 
@@ -31,7 +33,7 @@ clean:
 
 
 target: $(OBJS)
-	$(CC) $^ -lm -o $(OUTPUT_DIR)\$(OUTPUT)
+	$(CC) $^ $(LINKFLAGS) -o $(OUTPUT_DIR)\$(OUTPUT)
 
 
 %.o: $(SRC_DIR)\%.c
