@@ -9,7 +9,7 @@ void bitset_test(void);
 int main(void)
 {
 	//bitset_test();
-	db_print(db);
+	db_test();
 	return 0;
 }
 

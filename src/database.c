@@ -12,7 +12,6 @@
 /* local functions */
 static void printSets(Database* db);
 static void printAttributes(Database* db);
-static void printBits(int size, uint64_t value);
 
 
 
@@ -376,15 +375,6 @@ void printAttributes(Database* db){
     }
 }
 
-
-void printBits(int size, uint64_t value){
-
-    for(int i = 0;i<size*8;++i){
-    // print last bit and shift left.
-        printf("%u",value&1 ? 1 : 0);
-        value = value>>1;
-    }
-}
 
 
 
