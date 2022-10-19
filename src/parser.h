@@ -45,7 +45,7 @@ void print_universe(universe u);
 
 void print_string_list(string_list strings);
 
-// Note: This parser will not work with the char ';' inside of strings
+// Note: This parser will not work with the chars ';' and ':' inside of strings
 int parse_initialization(universe* u, const char* file_name);    // TODO
 
 #endif

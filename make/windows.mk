@@ -12,7 +12,7 @@ WFLAGS 		= 	-Wall -Wmissing-include-dirs -Wswitch-default -Wswitch-enum  	\
 				-Wcast-qual -Wcast-align -Wwrite-strings -Wpointer-arith  		\
 				-Winline -Wdisabled-optimization 								\
 				-Wold-style-definition -Wmissing-noreturn -Wuninitialized		\
-				-Winit-self -Winvalid-pch -Wpacked -Wpadded -Wunreachable-code	
+				-Winit-self -Winvalid-pch -Wpacked -Wpadded -Wunreachable-code 	
 
 WNOFLAGS	=	-Wno-conversion -Wno-unused-result
 
@@ -30,7 +30,7 @@ clean:
 
 
 target: $(OBJS)
-	$(CC) $^ -o $(OUTPUT_DIR)\$(OUTPUT)
+	$(CC) $^ -lregex -o $(OUTPUT_DIR)\$(OUTPUT)
 
 
 %.o: $(SRC_DIR)\%.c

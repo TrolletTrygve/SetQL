@@ -10,15 +10,17 @@
 
 // SUPPORT FUNCTIONS
 
-static char* str_copy(const char* str) {
-    char* new_str = (char*) malloc(strlen(str + 1) * sizeof(char));
+static char* str_copy(char* str) {
+    char* new_str = (char*) malloc((strlen(str) + 1) * sizeof(char));
     strcpy(new_str, str);
     return new_str;
 }
 
 // It copies a string from start_index to end_index-1 (It does a malloc).
 static char* str_copy_idx(char* str, size_t start_index, size_t end_index) {
-    char strCopy[strlen(str) + 1];
+    size_t len = strlen(str);
+    assert(start_index <= len && end_index <= len);
+    char strCopy[len + 1];
     strcpy(strCopy, str);
     strCopy[end_index] = '\0';
     char* new_str = strCopy + start_index;
@@ -320,7 +322,6 @@ void print_universe(universe u){            // TODO
     printf("Attribute data names: ");
     print_string_list(u.attribute_data_names);
     printf("\n\n");
-    if (1) return; // TOREMOVE
 
     printf("Key values: ");
     print_key_values(u);
@@ -329,6 +330,7 @@ void print_universe(universe u){            // TODO
     printf("Attribute values: ");
     print_attribute_values(u);
     printf("\n\n");
+    if (1) return; // TOREMOVE
 
     printf("Sets: \n");
     print_sets(u);
@@ -377,7 +379,9 @@ static int parse_universe_value_type(universe * u, char* str, char* error_messag
 
         for (size_t g = 0; g < maxGroups; g++)
         {
-            groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
+            groups[g] = NULL;
+            if (group_array[g].rm_eo != -1)
+                groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
         }
 
         key_data_names[i] = str_copy(groups[1]);
@@ -386,8 +390,10 @@ static int parse_universe_value_type(universe * u, char* str, char* error_messag
         size_t offset = group_array[3].rm_so;
         cursor += offset;
 
-        for (size_t g = 0; g < maxGroups; g++)
-            free(groups[g]);
+        for (size_t g = 0; g < maxGroups; g++) {
+            if (groups[g] != NULL)
+                free(groups[g]);
+        }
 
     }
 
@@ -421,13 +427,9 @@ static int parse_universe_definition(universe * u, char* str, char* error_messag
 
     for (size_t g = 0; g < maxGroups; g++)
     {
-        /* TOREMOVE
-        char cursorCopy[strlen(cursor) + 1];
-        strcpy(cursorCopy, cursor);
-        cursorCopy[group_array[g].rm_eo] = '\0';
-        char* group_str = cursorCopy + group_array[g].rm_so;
-        groups[g] = str_copy(group_str);*/
-        groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
+        groups[g] = NULL;
+            if (group_array[g].rm_eo != -1)
+                groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
         /*TOREMOVE
         printf("Group %u: [%2u-%2u]: %s\n",
                 g, group_array[g].rm_so, group_array[g].rm_eo,
@@ -448,8 +450,10 @@ static int parse_universe_definition(universe * u, char* str, char* error_messag
 
     // TODO: Check that there are correct data_types and data_names
 
-    for (size_t g = 0; g < maxGroups; g++)
-        free(groups[g]);
+    for (size_t g = 0; g < maxGroups; g++) {
+        if (groups[g] != NULL)
+            free(groups[g]);
+    }
 
     return 0;
 }
@@ -478,7 +482,9 @@ static int parse_attributes_value_type(universe * u, char* str, char* error_mess
 
         for (size_t g = 0; g < maxGroups; g++)
         {
-            groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
+            groups[g] = NULL;
+            if (group_array[g].rm_eo != -1)
+                groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
         }
 
         attribute_data_names[i] = str_copy(groups[1]);
@@ -487,8 +493,10 @@ static int parse_attributes_value_type(universe * u, char* str, char* error_mess
         size_t offset = group_array[3].rm_so;
         cursor += offset;
 
-        for (size_t g = 0; g < maxGroups; g++)
-            free(groups[g]);
+        for (size_t g = 0; g < maxGroups; g++) {
+            if (groups[g] != NULL)
+                free(groups[g]);
+        }
 
     }
 
@@ -522,7 +530,9 @@ static int parse_attributes_definition(universe * u, char* str, char* error_mess
 
     for (size_t g = 0; g < maxGroups; g++)
     {
-        groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
+        groups[g] = NULL;
+        if (group_array[g].rm_eo != -1)
+            groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
     }
 
     char* universe_name = groups[1];
@@ -537,8 +547,10 @@ static int parse_attributes_definition(universe * u, char* str, char* error_mess
 
     // TODO: Check that there are correct data_types and data_names
 
-    for (size_t g = 0; g < maxGroups; g++)
-        free(groups[g]);
+    for (size_t g = 0; g < maxGroups; g++) {
+        if (groups[g] != NULL)
+            free(groups[g]);
+    }
 
     return 0;
 }
@@ -555,25 +567,35 @@ static char* parse_string(char* string_value) {
     char* cursor = string_value;
 
     if (regexec(&regex_str_1, cursor, maxGroups, group_array, 0) == 0) {
-        for (size_t g = 0; g < 2; g++)
-            groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
+        for (size_t g = 0; g < 2; g++) {
+            groups[g] = NULL;
+            if (group_array[g].rm_eo != -1)
+                groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
+        }
 
         char* value = str_copy(groups[1]);
 
-        for (size_t g = 0; g < 2; g++)
-            free(groups[g]);
+        for (size_t g = 0; g < maxGroups; g++) {
+            if (groups[g] != NULL)
+                free(groups[g]);
+        }
 
         return value;
     }
 
     if (regexec(&regex_str_2, cursor, maxGroups, group_array, 0) == 0) {
-        for (size_t g = 0; g < 2; g++)
-            groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
+        for (size_t g = 0; g < 2; g++) {
+            groups[g] = NULL;
+            if (group_array[g].rm_eo != -1)
+                groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
+        }
 
         char* value = str_copy(groups[1]);
 
-        for (size_t g = 0; g < 2; g++)
-            free(groups[g]);
+        for (size_t g = 0; g < maxGroups; g++) {
+            if (groups[g] != NULL)
+                free(groups[g]);
+        }
 
         return value;
     }
@@ -593,27 +615,37 @@ static char* parse_integer(char* string_value) {
     char* cursor = string_value;
 
     if (regexec(&regex_int_1, cursor, maxGroups, group_array, 0) == 0) {
-        for (size_t g = 0; g < maxGroups; g++)
-            groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
+        for (size_t g = 0; g < maxGroups; g++) {
+            groups[g] = NULL;
+            if (group_array[g].rm_eo != -1)
+                groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
+        }
 
         char value_str[strlen(groups[1])+2];
         strcat(strcpy(value_str, "-"), groups[1]);
         char* value = str_copy(value_str);
 
-        for (size_t g = 0; g < maxGroups; g++)
-            free(groups[g]);
+        for (size_t g = 0; g < maxGroups; g++) {
+            if (groups[g] != NULL)
+                free(groups[g]);
+        }
 
         return value;
     }
 
     if (regexec(&regex_int_2, cursor, maxGroups, group_array, 0) == 0) {
-        for (size_t g = 0; g < maxGroups; g++)
-            groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
+        for (size_t g = 0; g < maxGroups; g++) {
+            groups[g] = NULL;
+            if (group_array[g].rm_eo != -1)
+                groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
+        }
 
         char* value = str_copy(groups[1]);
 
-        for (size_t g = 0; g < maxGroups; g++)
-            free(groups[g]);
+        for (size_t g = 0; g < maxGroups; g++) {
+            if (groups[g] != NULL)
+                free(groups[g]);
+        }
 
         return value;
     }
@@ -658,7 +690,7 @@ static int parse_universe_values(universe * u, char* str, char* error_message, s
 
     for (size_t i = 0; i < data_type_length; i++) {
 
-        if (regexec(&regex_value_type, cursor, maxGroups, group_array, 0)) {
+        if (regexec(&regex_universe_values, cursor, maxGroups, group_array, 0)) {
             strcpy(error_message, "Error parsing the values.");
             error = 1;
             break;
@@ -666,16 +698,21 @@ static int parse_universe_values(universe * u, char* str, char* error_message, s
 
         for (size_t g = 0; g < maxGroups; g++)
         {
-            groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
+            groups[g] = NULL;
+            if (group_array[g].rm_eo != -1)
+                groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
         }
 
+        printf("Data values %u: %s", i, groups[1]);     // TOREMOVE
         data_values[i] = str_copy(groups[1]);
 
         size_t offset = group_array[10].rm_so;
         cursor += offset;
 
-        for (size_t g = 0; g < maxGroups; g++)
-            free(groups[g]);
+        for (size_t g = 0; g < maxGroups; g++) {
+            if (groups[g] != NULL)
+                free(groups[g]);
+        }
 
     }
 
@@ -710,7 +747,8 @@ static int parse_universe_values(universe * u, char* str, char* error_message, s
         }
     }
 
-    values_ptr->values[data_index] = copy_string_array2(parsed_data_values, data_type_length);
+    if (!error)
+        values_ptr->values[data_index] = copy_string_array2(parsed_data_values, data_type_length);
     
     for (size_t i = 0; i < data_type_length; i++) {
         if (data_values[i] != NULL)
@@ -728,12 +766,14 @@ static regex_t regex_universe_insert_supp;
 
 // Returns 0 if it is successful
 static int parse_universe_insert_supp(universe * u, char* str, char* error_message) {
-    size_t maxGroups = 63;
+    size_t maxGroups = 65;
     regmatch_t group_array[maxGroups];
     char* groups[maxGroups];
     char* cursor = str;
 
     size_t data_length = count_chars(str, ':');
+
+    printf("Lets initialize the key_values\n"); // TOREMOVE
 
     initialize_array_list(&u->key_values, data_length); // malloc
     initialize_array_list(&u->attribute_values, data_length); // malloc
@@ -743,18 +783,26 @@ static int parse_universe_insert_supp(universe * u, char* str, char* error_messa
 
     int error = 0;
 
+    printf("The loop is about to start\n"); // TOREMOVE
+
     for (size_t i = 0; i < data_length; i++) {
         size_t data_index = i;
 
-        if (regexec(&regex_value_type, cursor, maxGroups, group_array, 0)) {
-            strcpy(error_message, "Error parsing insert supp.");
+        printf("Universe insert supp: parsing values in row %u at insert supp.\n", i); // TOREMOVE
+        printf("Regex expression:%s\n", regex_string_universe_insert_supp); // TOREMOVE
+
+        if (regexec(&regex_universe_insert_supp, cursor, maxGroups, group_array, 0)) {
+            printf("regexec(&regex_universe_insert_supp, cursor, maxGroups, group_array, 0): %i\n", regexec(&regex_universe_insert_supp, cursor, maxGroups, group_array, 0));
+            sprintf(error_message, "Error parsing values in row %u at insert supp.", i);
             error = 1;
             break;
         }
 
         for (size_t g = 0; g < maxGroups; g++)
         {
-            groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
+            groups[g] = NULL;
+            if (group_array[g].rm_eo != -1)
+                groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
         }
 
         char* key_values_string = groups[1];
@@ -770,10 +818,12 @@ static int parse_universe_insert_supp(universe * u, char* str, char* error_messa
             error = 1;
         }
 
-        size_t offset = group_array[0].rm_eo;
+        size_t offset = group_array[63].rm_so;
 
-        for (size_t g = 0; g < maxGroups; g++)
-            free(groups[g]);
+        for (size_t g = 0; g < maxGroups; g++) {
+            if (groups[g] != NULL)
+                free(groups[g]);
+        }
 
         cursor += offset;
 
@@ -794,14 +844,16 @@ static int parse_universe_insert(universe * u, char* str, char* error_message) {
     char* groups[maxGroups];
     char* cursor = str;
 
-    if (regexec(&regex_universe_definition, cursor, maxGroups, group_array, 0)) {
+    if (regexec(&regex_universe_insert, cursor, maxGroups, group_array, 0)) {
         strcpy(error_message, "Error parsing the universe insert.");
         return 1;
     }
 
     for (size_t g = 0; g < maxGroups; g++)
     {
-        groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
+        groups[g] = NULL;
+        if (group_array[g].rm_eo != -1)
+            groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
     }
 
     int error = 0;
@@ -812,13 +864,16 @@ static int parse_universe_insert(universe * u, char* str, char* error_message) {
         error = 1;
     }
 
+    printf("universe insert values: %s\n", groups[1]);    // TOREMOVE
     if (!error && parse_universe_insert_supp(u, groups[1], error_message)) {
         // error_message
         error = 1;
     }
 
-    for (size_t g = 0; g < maxGroups; g++)
-        free(groups[g]);
+    for (size_t g = 0; g < maxGroups; g++) {
+        if (groups[g] != NULL)
+            free(groups[g]);
+    }
 
     return error;
 }
@@ -839,8 +894,8 @@ static void initialize_regex(void) {
     assert(regcomp(&regex_int_2, regex_string_int_2, REG_EXTENDED) == 0);
     regex_string_universe_values = str_concat(5,",?\\s*", any_value, "\\s*((,\\s*", any_value, "\\s*)*)");
     assert(regcomp(&regex_universe_values, regex_string_universe_values, REG_EXTENDED) == 0);
-    regex_string_universe_insert_supp = str_concat(14, "\\s*((", any_value, ")|(\\(", any_value, "(\\s*,\\s*", any_value, ")*\\)))\\s*:"
-                                                     , "\\s*((", any_value, ")|(\\(", any_value, "(\\s*,\\s*", any_value, ")*\\)))\\s*");
+    regex_string_universe_insert_supp = str_concat(14, ",?\\s*((", any_value, ")|(\\(", any_value, "(\\s*,\\s*", any_value, ")*\\)))\\s*:"
+                                                       , "\\s*((", any_value, ")|(\\(", any_value, "(\\s*,\\s*", any_value, ")*\\)))\\s*((,[^,]+)*)");
     assert(regcomp(&regex_universe_insert_supp, regex_string_universe_insert_supp, REG_EXTENDED) == 0);
     assert(regcomp(&regex_universe_insert, regex_string_universe_insert, REG_EXTENDED) == 0);
 
@@ -865,7 +920,7 @@ int parse_initialization(universe* u, const char* file_name) {
     }
 
     if (parse_universe_definition(u, buffer, error_message)) {
-        printf("<Lines %u-%u>: %s", line, line+count_lines(buffer), error_message);
+        printf("<Lines %u-%u>: %s\n", line, line+count_lines(buffer), error_message);
         return 1;
     }
 
@@ -877,21 +932,19 @@ int parse_initialization(universe* u, const char* file_name) {
     }
 
     if (parse_attributes_definition(u, buffer, error_message)) {
-        printf("<Lines %u-%u>: %s", line, line+count_lines(buffer), error_message);
+        printf("<Lines %u-%u>: %s\n", line, line+count_lines(buffer), error_message);
         return 1;
     }
 
     line += count_lines(buffer);
-
-    if (1) {return 1;} // TOREMOVE
 
     if (fscanf(ptr, "%[^;];", buffer) == 0) {
         printf("Error: No semicolons found after CREATE ATTRIBUTES\n");
         return 1;
     }
 
-    if (0 && parse_universe_insert(u, buffer, error_message)) {
-        printf("<Lines %u-%u>: %s", line, line+count_lines(buffer), error_message);
+    if (parse_universe_insert(u, buffer, error_message)) {
+        printf("<Lines %u-%u>: %s\n", line, line+count_lines(buffer), error_message);
         return 1;
     }
 
