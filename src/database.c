@@ -80,6 +80,7 @@ void db_createSet(Database* db, char*name){
         exit(0);
     }
     printf("\t\t- st_insert\n");
+
     st_insert(db->setNamesTable, name, index);
     
     bitset_initialize(&db->sets[index], db->maxKeyCount, BIT_CLEAR);
@@ -239,8 +240,6 @@ void db_setAttribute(Database* db, char* attrName, char* keyName, void* data){
         return;
     }
 
-
-
     switch (type)
     {
     case TYPE_8:        db->attributes[attrIndex].data[keyIndex/8].char_u[keyIndex%8] = *((uint8_t*) data);
@@ -270,10 +269,29 @@ void db_setAttribute(Database* db, char* attrName, char* keyName, void* data){
  * @brief free all allocated memory of a Database 
  * 
  * @param db Database struct to free
- * TODO: free all data here!
  */
 void db_destroy(Database* db){
+    DEBUG_CALL(printf("db_destroy \t- begin\n")) 
+    //  free sets
+    for (size_t i = 0; i < db->setCount; i++){
+        free(db->sets[i].bits);
+    }
+    free(db->sets);
+
+    //  free attributes
+    for (size_t i = 0; i < db->attrCount; i++)
+    {
+        free(db->attributes[i].data);
+    }
+    free(db->attributes);
+
+    //  free symbol tables
+    free_table(db->keyTable);
+    free_table(db->setNamesTable);
+    free_table(db->attrNamesTable);
+
     free(db);
+    DEBUG_CALL(printf("db_destroy \t- success\n")) 
 }
 
 
@@ -386,8 +404,8 @@ void printAttributes(Database* db){
 void db_test(void){
 	Database* db = createEmptyDB(200, 10, 10); 
 
-	char input[] = "coolsetname";
-	db_createSet(db, input);
+	char set[] = "coolsetname";
+	db_createSet(db, set);
 
 	// add keys
 	for (int i = 0; i < 150; i++){
@@ -398,7 +416,7 @@ void db_test(void){
 	
 	char key[] = "key5";
 
-	db_addToSet(db, input, key);
+	db_addToSet(db, set, key);
 
 	char attr1[] = "attributetable_byte";
 	db_createAttribute(db, attr1, TYPE_8, -1);
@@ -440,5 +458,5 @@ void db_test(void){
 
 	db_print(db);
 
-	//db_destroy(db);
+	db_destroy(db);
 }
