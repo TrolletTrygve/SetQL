@@ -3,6 +3,9 @@
 #include <sys/wait.h>
 #include <string.h>
 #include "dbms_networking.h"
+#include "datastructures/database.h"
+#include "utils.h"
+#include "datastructures/bitset.h"
 
 #define PIPE_READ_END 	0
 #define PIPE_WRITE_END 	1
@@ -16,7 +19,8 @@ int test_function(char msg[MAX_MESSAGE_SIZE], int size, client_id id)
 
 int main(void)
 {
-
+	bitset_test();
+	db_test();
 	// pipe
 	int fd[2];
 	if (pipe(fd) == -1)
@@ -69,6 +73,6 @@ int main(void)
         }
         printf("Cool!\n");
 	}
-
 	return 0;
 }
+
