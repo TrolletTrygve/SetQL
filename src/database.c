@@ -450,17 +450,18 @@ void db_test(void){
 
 	char set[] = "coolsetname";
 	db_createSet(db, set);
-	db_createSet(db, set);
-	db_createSet(db, set);
 
 	// add keys
 	for (int i = 0; i < 150; i++){
 		char dst[12];
 		sprintf(dst, "key%d", i);
 		db_addKey(db, dst);
+        if(i%2){
+            db_addToSet(db, set, dst);
+        }
 	}
 	
-	char key[] = "ke";
+	char key[] = "key5";
 
 	db_addToSet(db, set, key);
 
