@@ -1,3 +1,6 @@
+#ifndef __DATABASE_H__
+#define __DATABASE_H__
+
 #include <stdint.h>
 #include "datastructures/symboltable.h"
 #include "datastructures/bitset.h"
@@ -19,13 +22,15 @@
 
 
 
+
 /**
  * @brief Union capable of storing different types of attribute data.
  */
 typedef union{
-    int8_t char_u[8];
-    int16_t int_u[2];
-    int64_t long_u;
+    uint8_t char_u[8];
+    uint16_t int_u[4];
+    uint32_t long_u[2];
+    uint64_t longlong_u;
 }AttrUnion;
 
 
@@ -57,18 +62,16 @@ typedef struct{
     SymbolTable* keyTable;
 
     /* max size and current size for the number of keys/elements in the DB */
-    long                maxKeyCount;
-    long                keyCount;
+    uint64_t                maxKeyCount;
+    uint64_t                keyCount;
 
     /* max size and current amount of sets in database */
-    long                maxSetSize;
-    long                setCount;;
+    uint64_t                maxSetSize;
+    uint64_t                setCount;;
 
     /* max and current amout of attributes in database */
-    long                maxAttrSize;
-    long                attrCount;
-
-    long                stringSize;
+    uint64_t                maxAttrSize;
+    uint64_t                attrCount;
 } Database;
 
 
@@ -83,16 +86,24 @@ typedef struct{
  */
 Database* createEmptyDB(long universeSize, long setSize, long attrSize);
 
+
+
 void db_removeFromSet(Database* db, char*set, char*key);
 
 void db_createSet(Database* db, char*name);
 
+void db_addToSet(Database* db, char* set, char* element);
+
 void db_createAttribute(Database* db, char* name, int type, int stringSize);
 
-void db_addToSet(Database* db, char* set, char* element);
+void db_setAttribute(Database* db, char* attrName, char* keyName, void* data);
 
 void db_addKey(Database* db, char*name);
 
 void db_destroy(Database* db);
 
 void db_print(Database* db);
+
+void db_test(void);
+
+#endif
