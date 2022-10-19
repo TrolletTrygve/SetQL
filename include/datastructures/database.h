@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include "datastructures/symboltable.h"
+#include "datastructures/bitset.h"
 
 /**
  * defines types as integers (same purpose as enum)
@@ -44,8 +45,8 @@ typedef struct{
  * @brief Struct representing database.
  */
 typedef struct{
-    /* Bitset, bit k set to 1 means element at index k is in that set.  */
-    uint64_t**   sets;
+    /* Bitset */
+    bitset*      sets;
     /* holds attributes for elements (integers, strings...) */
     Attributes*  attributes;
     /* symbol table with name as key */

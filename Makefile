@@ -7,7 +7,7 @@ INCLUDE_DIR = include
 SRC_DIR 	= src
 OUTPUT_DIR 	= out
 
-OBJS = main.o database.o symboltable.o
+OBJS = main.o database.o symboltable.o bitset.o
 
 # System specific makefile
 ifeq ($(OS),Windows_NT)

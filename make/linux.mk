@@ -30,7 +30,7 @@ clean:
 
 
 target: $(OBJS)
-	$(CC) $^ -o $(OUTPUT_DIR)/$(OUTPUT)
+	$(CC) $^ -lm -o $(OUTPUT_DIR)/$(OUTPUT)
 
 
 %.o: $(SRC_DIR)/%.c

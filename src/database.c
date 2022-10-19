@@ -52,8 +52,8 @@ Database* createEmptyDB(long maxUniverseSize, long maxSetSize, long maxAttrSize)
     db->setCount = 0;
     db->attrCount = 0;
 
-    printf("createEmptyDB \t- initializes set\n");
-    db->sets = malloc(sizeof(uint64_t*)*maxSetSize);
+    printf("createEmptyDB \t- initializes sets\n");
+    db->sets = (bitset*)malloc(sizeof(bitset)*maxSetSize);
     printf("createEmptyDB \t- initializes attr size %ld\n", sizeof(Attributes)*maxAttrSize);
     db->attributes = malloc(sizeof(Attributes)*maxAttrSize);
 
@@ -87,9 +87,11 @@ void db_createSet(Database* db, char*name){
     }
     printf("\t\t- st_insert\n");
     st_insert(db->setNamesTable, name, index);
-    printf("\t\t- calloc\n");
-    db->sets[index] = calloc(db->maxKeyCount/8+1, 1);
+    
+    bitset_initialize(&db->sets[index], db->maxKeyCount, BIT_CLEAR);
+
     db->setCount++;
+
     printf("\t\t- done!\n");
 }
 
@@ -116,14 +118,15 @@ void db_removeFromSet(Database* db, char*set, char*key){
         return;
     }
 
-    if(db->sets[sdata->index] == NULL){
+    if(db->sets[sdata->index].bits == NULL){
         perror("addToSet \t- ERROR! set not in database");
         return;
     }
-    long index = edata->index % (sizeof(uint64_t)*8);
-    long index2 = edata->index / (sizeof(uint64_t)*8);
-    db->sets[sdata->index][index2]&= ~(1 << index);
+    //long index = edata->index % (sizeof(uint64_t)*8);
+    //long index2 = edata->index / (sizeof(uint64_t)*8);
 
+    bitset_clear_bit(&db->sets[sdata->index], edata->index);
+    //db->sets[sdata->index][index2]&= ~(1 << index);
 }
 
 
@@ -148,18 +151,19 @@ void db_addToSet(Database* db, char* set, char* key){
         perror("addToSet \t- ERROR! set name not in database symbol table");
         return;
     }
-    if(db->sets[sdata->index] == NULL){
+    if(db->sets[sdata->index].bits == NULL){
         errno = EINVAL;
         perror("addToSet \t- ERROR! set not in database");
         return;
     }
-    long index = edata->index % (sizeof(uint64_t)*8);
-    long index2 = edata->index / (sizeof(uint64_t)*8);
+    //long index = edata->index % (sizeof(uint64_t)*8);
+    //long index2 = edata->index / (sizeof(uint64_t)*8);
     printf("\n\n");
     printBits(64, 1<<10);
     printf("\n\n");
 
-    db->sets[sdata->index][index2] |= (uint64_t)1 << index;
+    bitset_set_bit(&db->sets[sdata->index], edata->index);
+    //db->sets[sdata->index][index2] |= (uint64_t)1 << index;
 }
 
 /**
@@ -239,18 +243,23 @@ void printSets(Database* db){
         TableData* data = (TableData*)st_search(db->setNamesTable, keys[i]);
         free(keys[i]);
         int index = data->index;
-        uint64_t* set = db->sets[index];
 
-        printf("set %s\n[", keys[i]);
+        bitset* set = &db->sets[index];
+        //uint64_t* set = db->sets[index];
+
+        printf("set %s", keys[i]);
         
-        long b = db->keyCount / (sizeof(uint64_t)*8)+1;
+        //long b = db->keyCount / (sizeof(uint64_t)*8)+1;
 
+        bitset_print(set);
+        /*
         for (long j = 0; j < b; j++){
             printf("\n");
             uint64_t k = set[j];
             printBits(sizeof(uint64_t),k);
         }
-        printf("\n]\n");
+        */
+        printf("\n");
         i++;
     }
 
