@@ -703,7 +703,7 @@ static int parse_universe_values(universe * u, char* str, char* error_message, s
                 groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
         }
 
-        printf("Data values %u: %s", i, groups[1]);     // TOREMOVE
+        printf("Data values %zu: %s", i, groups[1]);     // TOREMOVE
         data_values[i] = str_copy(groups[1]);
 
         size_t offset = group_array[10].rm_so;
@@ -788,12 +788,12 @@ static int parse_universe_insert_supp(universe * u, char* str, char* error_messa
     for (size_t i = 0; i < data_length; i++) {
         size_t data_index = i;
 
-        printf("Universe insert supp: parsing values in row %u at insert supp.\n", i); // TOREMOVE
+        printf("Universe insert supp: parsing values in row %zu at insert supp.\n", i); // TOREMOVE
         printf("Regex expression:%s\n", regex_string_universe_insert_supp); // TOREMOVE
 
         if (regexec(&regex_universe_insert_supp, cursor, maxGroups, group_array, 0)) {
             printf("regexec(&regex_universe_insert_supp, cursor, maxGroups, group_array, 0): %i\n", regexec(&regex_universe_insert_supp, cursor, maxGroups, group_array, 0));
-            sprintf(error_message, "Error parsing values in row %u at insert supp.", i);
+            sprintf(error_message, "Error parsing values in row %zu at insert supp.", i);
             error = 1;
             break;
         }
