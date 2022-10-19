@@ -32,4 +32,6 @@ void bitset_clear_bit(bitset* b, uint64_t bit);
 void bitset_print(bitset* b);
 void bitset_free(bitset* b);
 
+void bitset_test(void);
+
 #endif
