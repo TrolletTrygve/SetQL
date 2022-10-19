@@ -884,20 +884,20 @@ static int regex_is_initialized = 0;
 static void initialize_regex(void) {
     if (regex_is_initialized) return;
     // Universe key values and attributes definition
-    assert(regcomp(&regex_value_type, regex_string_value_type, REG_EXTENDED) == 0);
-    assert(regcomp(&regex_universe_definition, regex_string_universe_definition, REG_EXTENDED) == 0);
-    assert(regcomp(&regex_attributes_definition, regex_string_attributes_definition, REG_EXTENDED) == 0);
+    assert(regcomp(&regex_value_type, regex_string_value_type, REG_EXTENDED | REG_ICASE) == 0);
+    assert(regcomp(&regex_universe_definition, regex_string_universe_definition, REG_EXTENDED | REG_ICASE) == 0);
+    assert(regcomp(&regex_attributes_definition, regex_string_attributes_definition, REG_EXTENDED | REG_ICASE) == 0);
     // Universe insert
     assert(regcomp(&regex_str_1, regex_string_str_1, REG_EXTENDED) == 0);
     assert(regcomp(&regex_str_2, regex_string_str_2, REG_EXTENDED) == 0);
     assert(regcomp(&regex_int_1, regex_string_int_1, REG_EXTENDED) == 0);
     assert(regcomp(&regex_int_2, regex_string_int_2, REG_EXTENDED) == 0);
     regex_string_universe_values = str_concat(5,",?\\s*", any_value, "\\s*((,\\s*", any_value, "\\s*)*)");
-    assert(regcomp(&regex_universe_values, regex_string_universe_values, REG_EXTENDED) == 0);
+    assert(regcomp(&regex_universe_values, regex_string_universe_values, REG_EXTENDED | REG_ICASE) == 0);
     regex_string_universe_insert_supp = str_concat(14, ",?\\s*((", any_value, ")|(\\(", any_value, "(\\s*,\\s*", any_value, ")*\\)))\\s*:"
                                                        , "\\s*((", any_value, ")|(\\(", any_value, "(\\s*,\\s*", any_value, ")*\\)))\\s*((,[^,]+)*)");
-    assert(regcomp(&regex_universe_insert_supp, regex_string_universe_insert_supp, REG_EXTENDED) == 0);
-    assert(regcomp(&regex_universe_insert, regex_string_universe_insert, REG_EXTENDED) == 0);
+    assert(regcomp(&regex_universe_insert_supp, regex_string_universe_insert_supp, REG_EXTENDED | REG_ICASE) == 0);
+    assert(regcomp(&regex_universe_insert, regex_string_universe_insert, REG_EXTENDED | REG_ICASE) == 0);
 
     regex_is_initialized = 1;
 }
