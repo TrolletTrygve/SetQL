@@ -1,8 +1,0 @@
-{
-    "files.associations": {
-        "array": "c",
-        "string": "c",
-        "sstream": "c",
-        "regex": "c"
-    }
-}
