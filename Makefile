@@ -7,7 +7,7 @@ INCLUDE_DIR = include
 SRC_DIR 	= src
 OUTPUT_DIR 	= out
 
-OBJS = main.o database.o symboltable.o bitset.o dbms_networking.o
+OBJS = main.o database.o symboltable.o bitset.o dbms_networking.o parser.o
 
 
 # System specific makefile

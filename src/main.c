@@ -1,3 +1,4 @@
+#include "parser.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/wait.h>
@@ -19,6 +20,13 @@ int test_function(char msg[MAX_MESSAGE_SIZE], int size, client_id id)
 
 int main(void)
 {
+	//universe u = create_universe_example();
+	//print_universe(u);
+
+	universe u;
+	parse_initialization(&u, "./initialization_example.txt");
+
+	print_universe(u);
 	bitset_test();
 	db_test();
 	// pipe
@@ -43,7 +51,6 @@ int main(void)
 		printf("Child! pid: %d\n", pid);
 		dbms_networking_initialize(8080, &test_function);
 		dbms_networking_add_pipe_client(fd[PIPE_READ_END], fd[PIPE_WRITE_END]);
-
 		dbms_start();
 		dbms_networking_kill();
 	}

@@ -12,14 +12,14 @@ WFLAGS 		= 	-Wall -Wmissing-include-dirs -Wswitch-default -Wswitch-enum  	\
 				-Wcast-qual -Wcast-align -Wwrite-strings -Wpointer-arith  		\
 				-Winline -Wdisabled-optimization 								\
 				-Wold-style-definition -Wmissing-noreturn -Wuninitialized		\
-				-Winit-self -Winvalid-pch -Wpacked -Wpadded -Wunreachable-code	
+				-Winit-self -Winvalid-pch -Wpacked -Wpadded -Wunreachable-code 	
 
 WNOFLAGS	=	-Wno-conversion -Wno-unused-result
 
 CXXFLAGS 		= $(INCLUDE) $(DBFLAGS) $(WFLAGS) $(WNOFLAGS)
 DEBUG_FLAGS 	= -DDEBUG
 
-LINKFLAGS 	= -lws2_32
+LINKFLAGS 	= -lws2_32 -lregex
 
 
 all: init target
