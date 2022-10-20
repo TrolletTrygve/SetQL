@@ -1,12 +1,16 @@
 #include "parser.h"
 
 #include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <assert.h>
 #include <regex.h>
 #include <stdarg.h>
+
+#define MAX_ULONG ((size_t) -1)
 
 // SUPPORT FUNCTIONS
 
@@ -111,6 +115,16 @@ static void initialize_array_list(array_list* al_ptr, size_t length) {
     al_ptr->values = (char***)malloc(length * sizeof(char**));
     for(size_t i = 0; i < length; i++)
         al_ptr->values[i] = NULL;
+}
+
+static void initialize_sets(universe* u, size_t length) {
+    u->sets_length = length;
+    u->sets = (set*)malloc(length * sizeof(set));
+    for (size_t i = 0; i < length; i++) {
+        strcpy(u->sets[i].name, "");
+        u->sets[i].key_values.length = 0;
+        u->sets[i].key_values.values = NULL;
+    }
 }
 
 static const char* STRING_TYPE_NAME = "STRING";
@@ -656,7 +670,7 @@ static int parse_universe_values(universe * u, char* str, char* error_message, s
                 groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
         }
 
-        printf("Data values %zu: %s", i, groups[1]);     // TOREMOVE
+        printf("Data values %zu: %s\n", i, groups[1]);     // TOREMOVE
         data_values[i] = str_copy(groups[1]);
 
         size_t offset = group_array[7].rm_so;
@@ -877,6 +891,38 @@ static int parse_universe_insert(universe * u, char* str, char* error_message) {
     return error;
 }
 
+static const char* regex_string_create_set = "^\\s*CREATE\\s+SET\\s+([a-zA-Z]+)\\s*$";
+static regex_t regex_create_set;
+
+// Returns 0 if it is successful
+/*static int parse_create_set(universe * u, char* str, char* error_message, size_t set_index) {
+    size_t maxGroups = 2;
+    regmatch_t group_array[maxGroups];
+    char* groups[maxGroups];
+    char* cursor = str;
+
+    if (regexec(&regex_create_set, cursor, maxGroups, group_array, 0)) {
+        strcpy(error_message, "Error parsing the create set.");
+        return 1;
+    }
+
+    for (size_t g = 0; g < maxGroups; g++)
+    {
+        groups[g] = NULL;
+        if (group_array[g].rm_eo != -1)
+            groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
+    }
+
+    char* set_name = groups[1];
+
+    for (size_t g = 0; g < maxGroups; g++) {
+        if (groups[g] != NULL)
+            free(groups[g]);
+    }
+
+    return 0;
+} */
+
 static int regex_is_initialized = 0;
 
 // Compile all the regex expressions that will be used in the parsing
@@ -893,14 +939,16 @@ static void initialize_regex(void) {
     assert(regcomp(&regex_int_2, regex_string_int_2, REG_EXTENDED) == 0);
     regex_string_universe_values = str_concat(5,"^\\s*[(,]?\\s*", any_value, "\\s*((,\\s*", any_value, "\\s*)*)");
     assert(regcomp(&regex_universe_values, regex_string_universe_values, REG_EXTENDED | REG_ICASE) == 0);
-    regex_string_universe_insert_supp = str_concat(14, "^,?\\s*((", any_value, ")|(\\(", any_value, "(\\s*,\\s*", any_value, ")*\\)))\\s*:"
+    /*regex_string_universe_insert_supp = str_concat(14, "^,?\\s*((", any_value, ")|(\\(", any_value, "(\\s*,\\s*", any_value, ")*\\)))\\s*:"
                                                        , "\\s*((", any_value, ")|(\\(", any_value, "(\\s*,\\s*", any_value, ")*\\)))\\s*((,[^,]+)*)");
     regex_string_universe_insert_supp = str_concat(7, "^,?\\s*((", any_value, ")|(\\(", any_value, "(\\s*,\\s*", any_value, ")*\\)))\\s*");
     regex_string_universe_insert_supp = str_concat(10, "^,?\\s*((\\(", any_value, "(\\s*,\\s*", any_value, ")*\\)))\\s*:"
-                                                       , "\\s*((\\(", any_value, "(\\s*,\\s*", any_value, ")*\\)))\\s*((,[^,]+)*)");
+                                                       , "\\s*((\\(", any_value, "(\\s*,\\s*", any_value, ")*\\)))\\s*((,[^,]+)*)");*/
     regex_string_universe_insert_supp = str_concat(7, "^,?\\s*((", any_value, ")|(\\(", any_value, "(\\s*,\\s*", any_value, ")*\\)))\\s*");
     assert(regcomp(&regex_universe_insert_supp, regex_string_universe_insert_supp, REG_EXTENDED | REG_ICASE) == 0);
     assert(regcomp(&regex_universe_insert, regex_string_universe_insert, REG_EXTENDED | REG_ICASE) == 0);
+    // Create set
+    assert(regcomp(&regex_create_set, regex_string_create_set, REG_EXTENDED | REG_ICASE) == 0);
 
     regex_is_initialized = 1;
 }
@@ -953,14 +1001,40 @@ int parse_initialization(universe* u, const char* file_name) {
 
     line += count_lines(buffer);
 
-    /* TOREMOVE
-    while (fscanf(ptr, "%[^;];", buffer) == 1) {
-        printf("<LINE %i>", line);
-        printf("%s<SEMICOLON>", buffer);
+    // Copy file pointer
+    FILE* ptr_copy = fdopen (dup (fileno (ptr)), "r");
+    // Count created sets
+    size_t sets_count = 0;
+    while (fscanf(ptr_copy, "%[^;];", buffer) == 1) {
 
+        // if CREATE SET
+        if (regexec(&regex_create_set, buffer, 0, NULL, 0) == 0) {
+            sets_count += 1;
+        }
+
+    }
+    fclose(ptr_copy);
+
+    initialize_sets(u, sets_count);
+
+    size_t set_index = 0;
+
+    while (fscanf(ptr, "%[^;];", buffer) == 1) {
+
+        //if CREATE SET
+        if (regexec(&regex_create_set, buffer, 0, NULL, 0) == 0) {
+
+            // TODO parse set
+            
+            set_index += 1;
+        } else {
+            // TODO
+        }
 
         line += count_lines(buffer);
-    }*/
+    }
+
+    fclose(ptr);
 
     free(buffer);
 
