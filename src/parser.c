@@ -155,6 +155,20 @@ const char* data_type2type_name(int data_type) {
     return NULL;
 }
 
+// Returns the index if exists a set with that name in the universe. MAX_ULONG otherwise.
+static size_t universe_set_position(universe* u, const char* set_name) {
+    for(size_t i = 0; i < u->sets_length; i++) {
+        if (strcmp(set_name, u->sets[i].name) == 0)
+            return i;
+    }
+    return MAX_ULONG;
+}
+
+// Returns 1 if exists a set with that name in the universe. 0 otherwise.
+static size_t exists_universe_set(universe* u, const char* set_name) {
+    return universe_set_position(u, set_name) != MAX_ULONG;
+}
+
 // MODIFY UNIVERSE
 
 static void modify_array_list(array_list* a_list, const char** values[], size_t length, size_t data_types_length) {
@@ -895,7 +909,7 @@ static const char* regex_string_create_set = "^\\s*CREATE\\s+SET\\s+([a-zA-Z]+)\
 static regex_t regex_create_set;
 
 // Returns 0 if it is successful
-/*static int parse_create_set(universe * u, char* str, char* error_message, size_t set_index) {
+static int parse_create_set(universe * u, char* str, char* error_message, size_t set_index) {
     size_t maxGroups = 2;
     regmatch_t group_array[maxGroups];
     char* groups[maxGroups];
@@ -914,14 +928,27 @@ static regex_t regex_create_set;
     }
 
     char* set_name = groups[1];
+    assert(strlen(set_name) < 50);
+
+    int error = 0;
+
+    if (exists_universe_set(u, set_name)) {
+        sprintf(error_message, "Error creating set. Set \"%s\" already exists.", set_name);
+        error = 1;
+    }
+
+    if (!error) {
+        assert(set_index < u->sets_length);
+        strcpy(u->sets[set_index].name, set_name);
+    }
 
     for (size_t g = 0; g < maxGroups; g++) {
         if (groups[g] != NULL)
             free(groups[g]);
     }
 
-    return 0;
-} */
+    return error;
+}
 
 static int regex_is_initialized = 0;
 
@@ -1001,11 +1028,9 @@ int parse_initialization(universe* u, const char* file_name) {
 
     line += count_lines(buffer);
 
-    // Copy file pointer
-    FILE* ptr_copy = fdopen (dup (fileno (ptr)), "r");
     // Count created sets
     size_t sets_count = 0;
-    while (fscanf(ptr_copy, "%[^;];", buffer) == 1) {
+    while (fscanf(ptr, "%[^;];", buffer) == 1) {
 
         // if CREATE SET
         if (regexec(&regex_create_set, buffer, 0, NULL, 0) == 0) {
@@ -1013,8 +1038,14 @@ int parse_initialization(universe* u, const char* file_name) {
         }
 
     }
-    fclose(ptr_copy);
+    fclose(ptr);
 
+    // Get the file pointer back to the same position as before
+    ptr = fopen(file_name, "r");
+    for (int i = 0; i < 3; i++)
+        fscanf(ptr, "%[^;];", buffer);
+
+    printf("sets_counts:%zu\n", sets_count); // TOREMOVE
     initialize_sets(u, sets_count);
 
     size_t set_index = 0;
@@ -1024,7 +1055,10 @@ int parse_initialization(universe* u, const char* file_name) {
         //if CREATE SET
         if (regexec(&regex_create_set, buffer, 0, NULL, 0) == 0) {
 
-            // TODO parse set
+            if(parse_create_set(u, buffer, error_message, set_index)) {
+                printf("<Lines %u-%u>: %s\n", line, line+count_lines(buffer), error_message);
+                return 1;
+            }
             
             set_index += 1;
         } else {
