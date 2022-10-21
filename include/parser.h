@@ -68,7 +68,7 @@ struct set_operation {
     // If it is not a leave node
     struct set_operation* left_op;
     struct set_operation* right_op;
-    int op_value;
+    int op_type;
 };
 
 typedef struct set_operation set_op;
@@ -76,6 +76,8 @@ typedef struct set_operation set_op;
 set_op* create_empty_set_op(void);
 
 void free_set_op(set_op* op);
+
+set_op* create_set_op(int op_type);
 
 typedef struct {
     string_list column_names;

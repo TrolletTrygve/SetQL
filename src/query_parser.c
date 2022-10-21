@@ -15,7 +15,7 @@ set_op* create_empty_set_op(void) {
     op->set_name = NULL;
     op->left_op = NULL;
     op->right_op = NULL;
-    op->op_value = 0;
+    op->op_type = 0;
     return op;
 }
 
@@ -35,7 +35,7 @@ void free_set_op(set_op* op) {
         op->right_op = NULL;
     }
     op->is_leave = 0;
-    op->op_value = 0;
+    op->op_type = 0;
 }
 
 query create_empty_query(void) {
