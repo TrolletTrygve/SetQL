@@ -60,7 +60,7 @@ int parse_initialization(universe* u, const char* file_name);    // TODO
 #define OP_COMPLEMENT   1
 #define OP_UNION        2
 #define OP_INTERSECTION 3
-//#define OP_DIFFERENCE 4
+#define OP_DIFFERENCE   4   // This type will not appear in the struct set_operation (INTERSECTION and COMPLEMENT will be used instead)
 
 struct set_operation {
     int is_leave;

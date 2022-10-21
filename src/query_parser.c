@@ -49,7 +49,7 @@ static set_op* create_set_op_complement(set_op* left_op, set_op* right_op) {
     assert(right_op == NULL);
     set_op* op = create_empty_set_op();
     op->is_leave = 0;   // is_leave = FALSE
-    op->op_type = OP_INTERSECTION;
+    op->op_type = OP_COMPLEMENT;
     op->left_op = left_op;
     return op;
 }
@@ -72,6 +72,10 @@ static set_op* create_set_op_intersection(set_op* left_op, set_op* right_op) {
     return op;
 }
 
+static set_op* create_set_op_difference(set_op* left_op, set_op* right_op) {
+    return create_set_op_intersection(left_op, create_set_op_complement(right_op, NULL));
+}
+
 set_op* create_set_op(set_op* left_op, set_op* right_op, int op_type) {
     if (op_type == OP_COMPLEMENT)
         return create_set_op_complement(left_op, right_op);
@@ -79,6 +83,8 @@ set_op* create_set_op(set_op* left_op, set_op* right_op, int op_type) {
         return create_set_op_union(left_op, right_op);
     if (op_type == OP_INTERSECTION)
         return create_set_op_intersection(left_op, right_op);
+    if (op_type == OP_DIFFERENCE)
+        return create_set_op_difference(left_op, right_op);
     return NULL;
 }
 
