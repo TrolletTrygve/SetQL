@@ -11,6 +11,8 @@
 #include <stdarg.h>
 
 #define MAX_ULONG ((size_t) -1)
+#define TRUE 1
+#define FALSE 0
 
 // SUPPORT FUNCTIONS
 
@@ -317,9 +319,9 @@ void print_universe(universe u){            // TODO
 
 // UNIVERSE PARSE
 
-// Count the amounts of times a character apperas in a string
+// Count the amounts of times a character appears in a string
 static size_t count_chars(char* str, char c) {
-    int count = 0;
+    size_t count = 0;
     for (int i = 0; str[i]; i++) {
         count += (str[i] == c);
     }
@@ -327,7 +329,46 @@ static size_t count_chars(char* str, char c) {
 }
 
 static int count_lines(char* str) {
-    return count_chars(str, '\n');
+    return (int) count_chars(str, '\n');
+}
+
+// Count the amounts of times a character delimiter appears in a string (ignoring if they are inside of quoting "")
+/*static size_t count_delimiter(char* str, char delimiter) {
+    assert(delimiter != '"');
+    size_t count = 0;
+    char previous_char = '\0';
+    int inside_string = FALSE;
+    for (int i = 0; str[i]; i++) {
+        char current_char = str[i];
+        if (current_char == '"' && (previous_char != '\\'))
+            inside_string = !inside_string;
+        else if (!inside_string && (current_char == delimiter))
+            count += 1;
+        previous_char = current_char;
+    }
+    return count;
+}*/
+
+// Count the amounts of times a character delimiter appears in a string (ignoring if they are inside of quoting "") and ignoring parenthesis content
+static size_t count_delimiter_ignoring_parentheses_content(char* str, char delimiter) {
+    assert((delimiter != '"') && (delimiter != '(') && (delimiter != ')'));
+    size_t count = 0;
+    char previous_char = '\0';
+    int inside_string = FALSE;
+    int inside_parentheses = FALSE;
+    for (int i = 0; str[i]; i++) {
+        char current_char = str[i];
+        if (current_char == '"' && (previous_char != '\\'))
+            inside_string = !inside_string;
+        else if (!inside_parentheses && (current_char == '('))
+            inside_parentheses = TRUE;
+        else if (inside_parentheses && (current_char == ')'))
+            inside_parentheses = FALSE;
+        else if ((!inside_string && !inside_parentheses) && (current_char == delimiter))
+            count += 1;
+        previous_char = current_char;
+    }
+    return count;
 }
 
 static const char* regex_string_value_type = ",?\\s*(\\w+)\\s+(\\w+)\\s*((,\\s*\\w+\\s+\\w+\\s*)*)";
@@ -816,6 +857,8 @@ static int parse_universe_insert_supp(universe * u, char* str, char* error_messa
             error = 1;
         }
 
+        free(key_values_string);
+
         cursor += offset+1; // The pointer ^<keys>:<attributes> moves towards <keys>:^<attributes>
         
         printf("Attribute string:\"%s\"\n", cursor);    // TOREMOVE
@@ -851,6 +894,8 @@ static int parse_universe_insert_supp(universe * u, char* str, char* error_messa
             // strcpy(error_message, "Error parsing attribute values.");
             error = 1;
         }
+
+        free(attribute_values_string );
 
         cursor += offset;
 
@@ -939,7 +984,129 @@ static int parse_create_set(universe * u, char* str, char* error_message, size_t
 
     if (!error) {
         assert(set_index < u->sets_length);
+        printf("u->sets[%zu].name <- %s\n",set_index,set_name); // TOREMOVE
         strcpy(u->sets[set_index].name, set_name);
+    }
+
+    for (size_t g = 0; g < maxGroups; g++) {
+        if (groups[g] != NULL)
+            free(groups[g]);
+    }
+
+    return error;
+}
+
+// Returns 0 if it is successful
+static int parse_set_insert_supp(universe * u, char* str, char* error_message, size_t set_index) {
+    size_t maxGroups = 23;
+    regmatch_t group_array[maxGroups];
+    char* groups[maxGroups];
+    char* cursor = str;
+
+    size_t current_set_data_length = count_delimiter_ignoring_parentheses_content(str, ',') + 1;
+
+    // Assert that the inserted values are less or equal to the amount of values in the universe
+    assert(current_set_data_length <= u->key_values.length);
+
+    printf("current_set_data_length=%zu\n", current_set_data_length); // Toremove
+
+    printf("Lets initialize the set key values\n"); // TOREMOVE
+
+    initialize_array_list(&(u->sets[set_index].key_values), current_set_data_length); // malloc with 
+
+    int error = 0;
+
+    printf("The loop is about to start\n"); // TOREMOVE
+
+    for (size_t i = 0; i < current_set_data_length; i++) {
+        size_t data_index = i;
+
+        // Parse key values
+
+        printf("Universe insert supp: parsing values in row %zu at insert supp.\n", i); // TOREMOVE
+        printf("Regex expression:%s\n", regex_string_universe_insert_supp); // TOREMOVE
+
+        if (regexec(&regex_universe_insert_supp, cursor, maxGroups, group_array, 0)) {
+            sprintf(error_message, "Error parsing key values in row %zu at insert set supp.", i);
+            error = 1;
+            break;
+        }
+
+        for (size_t g = 0; g < maxGroups; g++)
+        {
+            groups[g] = NULL;
+            if (group_array[g].rm_eo != -1)
+                groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
+            if (g == 0) printf("Group 0: %s\n", groups[0]); // TOREMOVE
+        }
+
+        char* key_values_string = str_copy(groups[1]);
+        size_t offset = group_array[0].rm_eo;
+
+        for (size_t g = 0; g < maxGroups; g++) {
+            if (groups[g] != NULL)
+                free(groups[g]);
+        }
+
+        assert(data_index == i); // TOREMOVE
+        assert(set_index != MAX_ULONG); // TOREMOVE
+        printf("parse_set_values(key_value_string=\"%s\")\n", key_values_string);// TOREMOVE
+        /* TODO
+        if (parse_universe_values(u, key_values_string, error_message, u->key_data_names.length, data_index, is_key_value)) {
+            // strcpy(error_message, "Error parsing key values.");
+            error = 1;
+        } */
+
+        cursor += offset;
+
+        free(key_values_string);
+
+        if (error)
+            return error;
+
+        // current_set_data_length += 1; TOREMOVE
+        
+    }
+
+    return error;
+}
+
+static const char* regex_string_set_insert = "^\\s*INSERT\\s*\\{([^;]+)\\}\\s*INTO\\s+([a-zA-Z]+)\\s*$";
+static regex_t regex_set_insert;
+
+// Returns 0 if it is successful
+static int parse_set_insert(universe * u, char* str, char* error_message) {
+    size_t maxGroups = 3;
+    regmatch_t group_array[maxGroups];
+    char* groups[maxGroups];
+    char* cursor = str;
+
+    if (regexec(&regex_universe_insert, cursor, maxGroups, group_array, 0)) {
+        strcpy(error_message, "Error parsing the set insert.");
+        return 1;
+    }
+
+    for (size_t g = 0; g < maxGroups; g++)
+    {
+        groups[g] = NULL;
+        if (group_array[g].rm_eo != -1)
+            groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
+    }
+
+    int error = 0;
+
+    char* set_name = groups[2];
+    size_t set_index = universe_set_position(u, set_name);
+    if (set_index == MAX_ULONG) {   // If set does not exist
+        sprintf(error_message, "Error parsing set insert. Set \"%s\" does not exist", set_name);
+        error = 1;
+    }
+
+    printf("set insert values: %s\n", groups[1]);    // TOREMOVE
+    if (!error) {
+        if (parse_set_insert_supp(u, groups[1], error_message, set_index))
+            error = 1;
+        printf("INSERTING VALUES INTO SET %s\n", set_name); // TOREMOVE
     }
 
     for (size_t g = 0; g < maxGroups; g++) {
@@ -976,6 +1143,7 @@ static void initialize_regex(void) {
     assert(regcomp(&regex_universe_insert, regex_string_universe_insert, REG_EXTENDED | REG_ICASE) == 0);
     // Create set
     assert(regcomp(&regex_create_set, regex_string_create_set, REG_EXTENDED | REG_ICASE) == 0);
+    assert(regcomp(&regex_set_insert, regex_string_set_insert, REG_EXTENDED | REG_ICASE) == 0);
 
     regex_is_initialized = 1;
 }
@@ -1045,7 +1213,6 @@ int parse_initialization(universe* u, const char* file_name) {
     for (int i = 0; i < 3; i++)
         fscanf(ptr, "%[^;];", buffer);
 
-    printf("sets_counts:%zu\n", sets_count); // TOREMOVE
     initialize_sets(u, sets_count);
 
     size_t set_index = 0;
@@ -1062,7 +1229,10 @@ int parse_initialization(universe* u, const char* file_name) {
             
             set_index += 1;
         } else {
-            // TODO
+            if(parse_set_insert(u, buffer, error_message)) {
+                printf("<Lines %u-%u>: %s\n", line, line+count_lines(buffer), error_message);
+                return 1;
+            }
         }
 
         line += count_lines(buffer);
