@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "datastructures/symboltable.h"
 #include "datastructures/bitset.h"
+#include "../../src/parser.h"
 
 /**
  * defines types as integers (same purpose as enum)
@@ -86,7 +87,7 @@ typedef struct{
  */
 Database* createEmptyDB(long universeSize, long setSize, long attrSize);
 
-
+void db_addParsedData(Database* db, universe* u);
 
 void db_removeFromSet(Database* db, char*set, char*key);
 
