@@ -52,4 +52,31 @@ void print_string_list(string_list strings);
 // Note: This parser will not work with the char ';' inside of strings
 int parse_initialization(universe* u, const char* file_name);    // TODO
 
+// QUERY DEFINITIONS AND STRUCTS
+
+#define OP_COMPLEMENT   1
+#define OP_UNION        2
+#define OP_INTERSECTION 3
+//#define OP_DIFFERENCE 4
+
+struct set_operation {
+    int is_leave;
+    char* set_name; // NULL if ! is_leave
+    // If it is not a leave node
+    struct set_operation* left_op;
+    struct set_operation* right_op;
+    int op_value;
+};
+
+typedef struct set_operation set_op;
+
+set_op* create_empty_set_op(void);
+
+void free_set_op(set_op* op);
+
+typedef struct {
+    string_list column_names;
+    set_op* op;
+} query;
+
 #endif
