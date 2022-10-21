@@ -310,7 +310,6 @@ void print_universe(universe u){            // TODO
     printf("Attribute values: ");
     print_attribute_values(u);
     printf("\n\n");
-    if (1) return; // TOREMOVE
 
     printf("Sets: \n");
     print_sets(u);
@@ -996,6 +995,98 @@ static int parse_create_set(universe * u, char* str, char* error_message, size_t
     return error;
 }
 
+static int parse_set_values(universe * u, char* str, char* error_message, size_t data_index, size_t set_index) {
+    size_t maxGroups = 15;
+    regmatch_t group_array[maxGroups];
+    char* groups[maxGroups];
+    char* cursor = str;
+
+    size_t data_type_length = u->key_data_type_names.length;
+    //size_t data_type_length = count_chars(str, ',') + 1;
+    printf("data_type_length=%zu\n", data_type_length); // TOREMOVE
+    printf("count_chars(str, ',') + 1=%zu\n", (count_chars(str, ',') + 1)); // TOREMOVE
+    if (data_type_length != count_chars(str, ',') + 1) {
+        strcpy(error_message, "Error parsing set values: Wrong amount of values");
+        return 1;
+    }
+
+    char* data_values[data_type_length];
+    memset(data_values, 0, sizeof(data_values));
+
+    int error = 0;
+
+    printf("regex_string_universe_values=%s\n", regex_string_universe_values);// TOREMOVE
+
+    for (size_t i = 0; i < data_type_length; i++) {
+
+        if (regexec(&regex_universe_values, cursor, maxGroups, group_array, 0)) {
+            strcpy(error_message, "Error parsing the values.");
+            error = 1;
+            break;
+        }
+
+        for (size_t g = 0; g < maxGroups; g++)
+        {
+            groups[g] = NULL;
+            if (group_array[g].rm_eo != -1)
+                groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
+        }
+
+        printf("Data values %zu: %s\n", i, groups[1]);     // TOREMOVE
+        data_values[i] = str_copy(groups[1]);
+
+        size_t offset = group_array[7].rm_so;
+        cursor += offset;
+
+        for (size_t g = 0; g < maxGroups; g++) {
+            if (groups[g] != NULL)
+                free(groups[g]);
+        }
+
+    }
+
+    for (size_t i = 0; i < data_type_length; i++) printf("Data value %zu=%s\n", i, data_values[i]); // TOREMOVE
+
+    char* parsed_data_values[data_type_length];
+    memset(parsed_data_values, 0, sizeof(parsed_data_values));
+
+    //Parse data
+
+    assert(data_index < u->key_values.length);
+    assert(data_type_length == u->key_data_type_names.length);
+    assert(set_index < u->sets_length);
+
+    for (size_t i = 0; i < data_type_length; i++) {
+        int data_type = type_name2data_type(u->key_data_type_names.strings[i]);
+        parsed_data_values[i] = parse_value(data_values[i], data_type);
+        if (parsed_data_values[i] == NULL) {
+            sprintf(error_message, "Error parsing key value %s of type %s.", data_values[i], u->key_data_type_names.strings[i]);
+            error = 1;
+            break;
+        }
+    }
+
+    for (size_t i = 0; i < data_type_length; i++) printf("Parsed data value %zu=%s\n", i, parsed_data_values[i]); // TOREMOVE
+
+    if (!error) printf("!error\n");   // TOREMOVE
+    if (u->key_values.values[data_index] != NULL) printf("u->key_values.values[data_index] != NULL\n");   // TOREMOVE
+
+    if (!error)
+        // u->key_values.values[data_index] = copy_string_array2(parsed_data_values, data_type_length); TOREMOVE
+        u->sets[set_index].key_values.values[data_index] = copy_string_array2(parsed_data_values, data_type_length); 
+
+    for (size_t i = 0; i < data_type_length; i++) printf("u->key_values.values[%zu][%zu]=%s\n", data_index, i, u->key_values.values[data_index][i]); // TOREMOVE
+    
+    for (size_t i = 0; i < data_type_length; i++) {
+        if (data_values[i] != NULL)
+            free(data_values[i]);
+        if (parsed_data_values[i] != NULL)
+            free(parsed_data_values[i]);
+    }
+
+    return error;
+}
+
 // Returns 0 if it is successful
 static int parse_set_insert_supp(universe * u, char* str, char* error_message, size_t set_index) {
     size_t maxGroups = 23;
@@ -1048,14 +1139,12 @@ static int parse_set_insert_supp(universe * u, char* str, char* error_message, s
                 free(groups[g]);
         }
 
-        assert(data_index == i); // TOREMOVE
-        assert(set_index != MAX_ULONG); // TOREMOVE
         printf("parse_set_values(key_value_string=\"%s\")\n", key_values_string);// TOREMOVE
-        /* TODO
-        if (parse_universe_values(u, key_values_string, error_message, u->key_data_names.length, data_index, is_key_value)) {
+
+        if (parse_set_values(u, key_values_string, error_message, data_index, set_index)) {
             // strcpy(error_message, "Error parsing key values.");
             error = 1;
-        } */
+        }
 
         cursor += offset;
 
@@ -1063,8 +1152,6 @@ static int parse_set_insert_supp(universe * u, char* str, char* error_message, s
 
         if (error)
             return error;
-
-        // current_set_data_length += 1; TOREMOVE
         
     }
 
