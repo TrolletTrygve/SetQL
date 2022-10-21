@@ -39,13 +39,17 @@ typedef struct {
     size_t sets_length;                     // E.g. 2
 } universe;
 
+universe create_empty_universe(void);
+
+void free_universe(universe* u);
+
 universe create_universe_example(void);
 
 void print_universe(universe u);
 
 void print_string_list(string_list strings);
 
-// Note: This parser will not work with the chars ';' and ':' inside of strings
+// Note: This parser will not work with the char ';' inside of strings
 int parse_initialization(universe* u, const char* file_name);    // TODO
 
 #endif
