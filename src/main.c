@@ -23,7 +23,7 @@ int main(void)
 	//universe u = create_universe_example();
 	//print_universe(u);
 
-	universe u;
+	universe u = create_empty_universe();
 	parse_initialization(&u, "./initialization_example.txt");
 
 	print_universe(u);

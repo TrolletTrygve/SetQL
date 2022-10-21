@@ -110,11 +110,26 @@ static char*** copy_string_matrix2d(const char** values[], size_t length_1, size
     return copy;
 }
 
+static void initialize_string_list(string_list* sl_ptr, size_t length) {
+    sl_ptr->length = length;
+    if (length > 0) {
+        sl_ptr->strings = (char**)malloc(length * sizeof(char*));
+        for(size_t i = 0; i < length; i++)
+            sl_ptr->strings[i] = NULL;
+    } else {
+        sl_ptr->strings = NULL;
+    }
+}
+
 static void initialize_array_list(array_list* al_ptr, size_t length) {
     al_ptr->length = length;
-    al_ptr->values = (char***)malloc(length * sizeof(char**));
-    for(size_t i = 0; i < length; i++)
-        al_ptr->values[i] = NULL;
+    if (length > 0) {
+        al_ptr->values = (char***)malloc(length * sizeof(char**));
+        for(size_t i = 0; i < length; i++)
+            al_ptr->values[i] = NULL;
+    } else {
+        al_ptr->values = NULL;
+    }
 }
 
 static void initialize_sets(universe* u, size_t length) {
@@ -191,7 +206,18 @@ static void modify_u_set(universe u, size_t set_index, const char* name, const c
 universe create_empty_universe(void) {
     universe u;
     strcpy(u.name, "");
-    //TODO;
+
+    initialize_string_list(&u.key_data_type_names, 0);
+    initialize_string_list(&u.key_data_names, 0);
+    initialize_string_list(&u.attribute_data_type_names, 0);
+    initialize_string_list(&u.key_data_names, 0);
+
+    initialize_array_list(&u.key_values, 0);
+    initialize_array_list(&u.attribute_values, 0);
+
+    u.sets = NULL;
+    u.sets_length = 0;
+    
     return u;
 }
 
@@ -1170,10 +1196,7 @@ static void initialize_regex(void) {
     regex_string_universe_values = str_concat(5,"^\\s*[(,]?\\s*", any_value, "\\s*((,\\s*", any_value, "\\s*)*)");
     assert(regcomp(&regex_universe_values, regex_string_universe_values, REG_EXTENDED | REG_ICASE) == 0);
     /*regex_string_universe_insert_supp = str_concat(14, "^,?\\s*((", any_value, ")|(\\(", any_value, "(\\s*,\\s*", any_value, ")*\\)))\\s*:"
-                                                       , "\\s*((", any_value, ")|(\\(", any_value, "(\\s*,\\s*", any_value, ")*\\)))\\s*((,[^,]+)*)");
-    regex_string_universe_insert_supp = str_concat(7, "^,?\\s*((", any_value, ")|(\\(", any_value, "(\\s*,\\s*", any_value, ")*\\)))\\s*");
-    regex_string_universe_insert_supp = str_concat(10, "^,?\\s*((\\(", any_value, "(\\s*,\\s*", any_value, ")*\\)))\\s*:"
-                                                       , "\\s*((\\(", any_value, "(\\s*,\\s*", any_value, ")*\\)))\\s*((,[^,]+)*)");*/
+                                                       , "\\s*((", any_value, ")|(\\(", any_value, "(\\s*,\\s*", any_value, ")*\\)))\\s*((,[^,]+)*)");*/
     regex_string_universe_insert_supp = str_concat(7, "^,?\\s*((", any_value, ")|(\\(", any_value, "(\\s*,\\s*", any_value, ")*\\)))\\s*");
     assert(regcomp(&regex_universe_insert_supp, regex_string_universe_insert_supp, REG_EXTENDED | REG_ICASE) == 0);
     assert(regcomp(&regex_universe_insert, regex_string_universe_insert, REG_EXTENDED | REG_ICASE) == 0);
