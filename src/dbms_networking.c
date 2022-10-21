@@ -85,7 +85,7 @@ static int sock_quit(void)
  */
 static int accept_connection(void)
 {
-	int new_client, result;
+	int new_client;
 
 	int struct_size 	= sizeof(struct sockaddr_in);
     socklen_t* addrlen 	= (socklen_t*)(&struct_size);
@@ -105,14 +105,16 @@ static int accept_connection(void)
 	printf("%s\n", str);
 
 	printf("New connection from %s!\n", str);
-
+	
+	/*
     const char* msg = "Hejsan!";
-    result = send(new_client, msg, strlen(msg), 0);
+    int result = send(new_client, msg, strlen(msg), 0);
     if (result != (int)strlen(msg))
     {
     	perror("send");
     	return 0;
     }
+    */
 
     client_addresses[client_count] 	= incomming_address; 
    	
@@ -223,7 +225,7 @@ static int handle_message(client_id id)
 	if (result < 0)
 	{
 		perror("recv");
-		return  0;
+		return  1;
 	}
 	if (result == 0)
 	{

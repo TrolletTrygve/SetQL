@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<h1>Species :^)</h1>
+{% endblock %}
+
+
+{% block body %}
+
+<div class="center">
+
+	<form>
+		<label for="query">Query: </label>
+		<input type="text" id="query" name="query">
+		<input type="submit" value="GO" formmethod="POST">
+	</form>
+
+	<ul id="species-list">
+
+		{% for i in range(0, data_len) %}
+
+		<li>{{ data[i] }}</li>
+
+		{% endfor %}
+	</ul>
+</div>
+{% endblock %}
