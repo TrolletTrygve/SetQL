@@ -12,7 +12,7 @@
 #define TRUE 1
 #define FALSE 0
 
-// SUPPORT FUNCTIONS
+// SUPPORT FUNCTIONS 
 
 static char* str_copy(char* str) {
     char* new_str = (char*) malloc((strlen(str) + 1) * sizeof(char));
