@@ -221,6 +221,65 @@ universe create_empty_universe(void) {
     return u;
 }
 
+// FREE MEMORY OF UNIVERSE
+
+static void free_string_list(string_list* sl_ptr) {
+    if (sl_ptr == NULL) return;
+    if (sl_ptr->length == 0 || sl_ptr->strings == NULL) return;
+
+    for(size_t i = 0; i < sl_ptr->length; i++) {
+        if (sl_ptr->strings[i] != NULL)
+            free(sl_ptr->strings[i]);
+    }
+    free(sl_ptr->strings);
+    sl_ptr->length = 0;
+    sl_ptr->strings = NULL;
+}
+
+static void free_array_list(array_list* sl_ptr, size_t data_type_length) {
+    if (sl_ptr == NULL) return;
+    if (sl_ptr->length == 0 || sl_ptr->values == NULL) return;
+
+    for(size_t i = 0; i < sl_ptr->length; i++) {
+        if (sl_ptr->values[i] != NULL) {
+            for (size_t j = 0; j < data_type_length; j++) {
+                if (sl_ptr->values[i][j] != NULL)
+                    free(sl_ptr->values[i][j]);
+            }
+            free(sl_ptr->values[i]);
+        }
+    }
+    free(sl_ptr->values);
+    sl_ptr->length = 0;
+    sl_ptr->values = NULL;
+}
+
+static void free_sets(universe* u, size_t key_data_type_length) {
+    if (u == NULL || u->sets == NULL || u->sets_length == 0) return;
+
+    for(size_t i = 0; i < u->sets_length; i++) {
+        free_array_list(&u->sets[i].key_values, key_data_type_length);
+    }
+    free(u->sets);
+    u->sets_length = 0;
+    u->sets = NULL;
+}
+
+void free_universe(universe* u) {
+    size_t key_data_type_length = u->key_data_type_names.length;
+    size_t attribute_data_type_length = u->attribute_data_type_names.length;
+
+    free_string_list(&u->key_data_type_names);
+    free_string_list(&u->key_data_names);
+    free_string_list(&u->attribute_data_type_names);
+    free_string_list(&u->attribute_data_names);
+
+    free_array_list(&u->key_values, key_data_type_length);
+    free_array_list(&u->attribute_values, attribute_data_type_length);
+
+    free_sets(u, key_data_type_length);
+}
+
 // CREATE UNIVERSE EXAMPLE
 
 universe create_universe_example(void){   

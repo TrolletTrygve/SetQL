@@ -28,6 +28,8 @@ int main(void)
 
 	print_universe(u);
 
+	free_universe(&u);
+
 	return 0;
 }
 
