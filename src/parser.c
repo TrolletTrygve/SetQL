@@ -1,8 +1,6 @@
 #include "parser.h"
 
 #include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -188,10 +186,19 @@ static void modify_u_set(universe u, size_t set_index, const char* name, const c
     modify_set(&u.sets[set_index], name, values, length, u.key_data_type_names.length);
 }
 
-// CREATE UNIVERSE
+// CREATE EMPTY UNIVERSE
+
+static universe create_empty_universe(void) {
+    universe u;
+    strcpy(u.name, "");
+    //TODO;
+    return u;
+}
+
+// CREATE UNIVERSE EXAMPLE
 
 universe create_universe_example(void){   
-    universe u;
+    universe u = create_empty_universe();
     // Set universe name
 	strcpy(u.name, "Animal");
 
@@ -332,7 +339,7 @@ static int count_lines(char* str) {
 }
 
 // Count the amounts of times a character delimiter appears in a string (ignoring if they are inside of quoting "")
-/*static size_t count_delimiter(char* str, char delimiter) {
+static size_t count_delimiter(char* str, char delimiter) {
     assert(delimiter != '"');
     size_t count = 0;
     char previous_char = '\0';
@@ -346,7 +353,7 @@ static int count_lines(char* str) {
         previous_char = current_char;
     }
     return count;
-}*/
+}
 
 // Count the amounts of times a character delimiter appears in a string (ignoring if they are inside of quoting "") and ignoring parenthesis content
 static size_t count_delimiter_ignoring_parentheses_content(char* str, char delimiter) {
@@ -378,7 +385,7 @@ static int parse_universe_value_type(universe * u, char* str, char* error_messag
     regmatch_t group_array[maxGroups];
     char* groups[maxGroups];
     char* cursor = str;
-    size_t data_type_length = count_chars(str, ',') + 1;
+    size_t data_type_length = count_delimiter(str, ',') + 1;
 
     char* key_data_type_names[data_type_length];
     char* key_data_names[data_type_length];
@@ -481,7 +488,7 @@ static int parse_attributes_value_type(universe * u, char* str, char* error_mess
     regmatch_t group_array[maxGroups];
     char* groups[maxGroups];
     char* cursor = str;
-    size_t data_type_length = count_chars(str, ',') + 1;
+    size_t data_type_length = count_delimiter(str, ',') + 1;
 
     char* attribute_data_type_names[data_type_length];
     char* attribute_data_names[data_type_length];
@@ -696,8 +703,8 @@ static int parse_universe_values(universe * u, char* str, char* error_message, s
     regmatch_t group_array[maxGroups];
     char* groups[maxGroups];
     char* cursor = str;
-    //size_t data_type_length = count_chars(str, ',') + 1;
-    if (data_type_length != count_chars(str, ',') + 1) {
+    //size_t data_type_length = count_delimiter(str, ',') + 1;
+    if (data_type_length != count_delimiter(str, ',') + 1) {
         strcpy(error_message, "Error parsing values: Wrong amount of values");
         return 1;
     }
@@ -801,7 +808,7 @@ static int parse_universe_insert_supp(universe * u, char* str, char* error_messa
     char* groups[maxGroups];
     char* cursor = str;
 
-    size_t data_length = count_chars(str, ':');
+    size_t data_length = count_delimiter(str, ':');
 
     printf("Lets initialize the key_values\n"); // TOREMOVE
 
@@ -1002,10 +1009,10 @@ static int parse_set_values(universe * u, char* str, char* error_message, size_t
     char* cursor = str;
 
     size_t data_type_length = u->key_data_type_names.length;
-    //size_t data_type_length = count_chars(str, ',') + 1;
+    //size_t data_type_length = count_delimiter(str, ',') + 1;
     printf("data_type_length=%zu\n", data_type_length); // TOREMOVE
-    printf("count_chars(str, ',') + 1=%zu\n", (count_chars(str, ',') + 1)); // TOREMOVE
-    if (data_type_length != count_chars(str, ',') + 1) {
+    printf("count_delimiter(str, ',') + 1=%zu\n", (count_delimiter(str, ',') + 1)); // TOREMOVE
+    if (data_type_length != count_delimiter(str, ',') + 1) {
         strcpy(error_message, "Error parsing set values: Wrong amount of values");
         return 1;
     }
