@@ -26,6 +26,7 @@
 
 /**
  * @brief Union capable of storing different types of attribute data.
+ * TODO: ONLY UNSIGNED HERE!?
  */
 typedef union{
     uint8_t char_u[8];
