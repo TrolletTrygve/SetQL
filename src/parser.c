@@ -110,7 +110,7 @@ static char*** copy_string_matrix2d(const char** values[], size_t length_1, size
     return copy;
 }
 
-static void initialize_string_list(string_list* sl_ptr, size_t length) {
+void initialize_string_list(string_list* sl_ptr, size_t length) {
     sl_ptr->length = length;
     if (length > 0) {
         sl_ptr->strings = (char**)malloc(length * sizeof(char*));
@@ -223,7 +223,7 @@ universe create_empty_universe(void) {
 
 // FREE MEMORY OF UNIVERSE
 
-static void free_string_list(string_list* sl_ptr) {
+void free_string_list(string_list* sl_ptr) {
     if (sl_ptr == NULL) return;
     if (sl_ptr->length == 0 || sl_ptr->strings == NULL) return;
 

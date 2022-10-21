@@ -17,6 +17,9 @@ typedef struct {
     size_t length;
 } string_list;
 
+void initialize_string_list(string_list* sl_ptr, size_t length);
+void free_string_list(string_list* sl_ptr);
+
 typedef struct {
     char*** values;                 // E.g. [["crow", 100000], ["chicken", 25000000000], ["bat", 3000000000]]
     size_t length;                  // E.g. 3
@@ -78,5 +81,9 @@ typedef struct {
     string_list column_names;
     set_op* op;
 } query;
+
+query create_empty_query(void);
+
+void free_query(query* q);
 
 #endif

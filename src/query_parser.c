@@ -37,3 +37,19 @@ void free_set_op(set_op* op) {
     op->is_leave = 0;
     op->op_value = 0;
 }
+
+query create_empty_query(void) {
+    query q;
+    initialize_string_list(&q.column_names, 0);
+    q.op = NULL;
+    return q;
+}
+
+void free_query(query* q) {
+    assert(q != NULL);
+    free_string_list(&q->column_names);
+    if (q->op != NULL) {
+        free_set_op(q->op);
+        q->op = NULL;
+    }
+}
