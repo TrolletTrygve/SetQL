@@ -202,7 +202,7 @@ static int string2op_type(const char* string) {
     return 0;
 }
 
-static void print_set_op(set_op* op) {
+void print_set_op(set_op* op) {
     assert(op != NULL);
     if (op->is_leave) {
         printf("%s", op->set_name);
@@ -392,25 +392,12 @@ static int parse_entire_query(query* q, const char* query_string, char* error_me
     char* column_names = groups[1];
     char* set_operation = groups[3];
 
-    printf("column_names=%s\n", column_names);  // TOREMOVE
-
     if (parse_column_names(q, column_names, error_message)) {
         strcpy(error_message, "Error parsing column names in the query.");
         error = 1;
     }
 
-    for (size_t i = 0; i < q->column_names.length; i++) {
-        printf("Value %zu:\"%s\"\n", i, q->column_names.strings[i]);    // TOREMOVE
-    }
-
-    printf("set_operation=%s\n", set_operation);  // TOREMOVE
-
     q->op = parse_set_operation(set_operation, error_message);
-
-    if (q->op != NULL) 
-        {print_set_op(q->op);  printf("\n");} // TOREMOVE
-    else
-        printf("%s\n", error_message); // TOREMOVE
 
     if (q->op == NULL) {
         error = 1;
@@ -445,6 +432,7 @@ static void initialize_regex(void) {
 // If succesful returns 0 and modifies the query
 int parse_query(query* q, const char* query_string) {
     initialize_regex();
+    
     char error_message[200];
     if (parse_entire_query(q, query_string, error_message)) {
         printf("%s\n", error_message);

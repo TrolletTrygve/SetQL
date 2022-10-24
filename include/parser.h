@@ -85,6 +85,8 @@ void free_set_op(set_op* op);
 set_op* create_set_op_leave(const char* set_name);
 set_op* create_set_op(set_op* left_op, set_op* right_op, int op_type);
 
+void print_set_op(set_op* op);
+
 typedef struct {
     string_list column_names;
     set_op* op;
