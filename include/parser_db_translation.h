@@ -6,13 +6,26 @@
 #include"utils.h"
 #include"datastructures/bitset.h"
 
-typedef struct ReturnBitset {
+typedef struct {
     bitset* bs;
     int free;
-} ReturnBitset;
+} SetOpReturn;
+
+typedef struct{
+    int isString; // otherwise 64bit int
+    void* data;
+    uint64_t memorySize;
+}ColumnData;
+
+typedef struct{
+    uint64_t dataLength;
+    ColumnData* data; // include keys
+    uint64_t columnCount;
+} QueryReturn;
 
 void db_addParsedData(Database* db, universe* u);
-ReturnBitset db_parse_set_operation(Database* db, set_op* sop);
+SetOpReturn db_run_set_operation(Database* db, set_op* sop);
 
+QueryReturn* db_run_query(Database* db, query* q);
 
 #endif

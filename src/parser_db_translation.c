@@ -10,7 +10,7 @@
 int db_addParsedData_keys(Database* db, universe* u);
 int db_addParsedData_sets(Database* db, universe* u);
 int db_addParsedData_attributes(Database* db, universe* u);
-void freeBitsets(ReturnBitset rbl, ReturnBitset rbr);
+void freeBitsets(SetOpReturn rbl, SetOpReturn rbr);
 
 
 void db_addParsedData(Database* db, universe* u){
@@ -113,7 +113,7 @@ int db_addParsedData_attributes(Database* db, universe* u){
  * @param rbl bitset to maybe clear
  * @param rbr bitset to maybe clear
  */
-void freeBitsets(ReturnBitset rbl, ReturnBitset rbr){
+void freeBitsets(SetOpReturn rbl, SetOpReturn rbr){
     if(rbl.free){free(rbl.bs);}
     if(rbr.free){free(rbr.bs);}
 }
@@ -128,47 +128,47 @@ void freeBitsets(ReturnBitset rbl, ReturnBitset rbr){
  * @return ReturnBitset, use field .bs for resulting bitset. .bs is allocated memory.
  * 
  */
-ReturnBitset db_parse_set_operation(Database* db, set_op* sop){
-    ReturnBitset rbl;
-    ReturnBitset rbr;
-    ReturnBitset rbreturn;
+SetOpReturn db_run_set_operation(Database* db, set_op* sop){
+    SetOpReturn rbl;
+    SetOpReturn rbr;
+    SetOpReturn rbreturn;
     rbreturn.free = 1;
 
     bitset* result;
 
     if(sop->is_leave){
         TableData* tb = st_search(db->setNamesTable, sop->set_name);
-        ReturnBitset rb = {.bs = &db->sets[tb->index], .free = 0};
+        SetOpReturn rb = {.bs = &db->sets[tb->index], .free = 0};
         return rb;
     }
     else{
         switch (sop->op_type){
         case OP_COMPLEMENT:
-                rbl = db_parse_set_operation(db, sop->left_op);
+                rbl = db_run_set_operation(db, sop->left_op);
                 result = bitset_complement(rbl.bs);
                 if(rbl.free){free(rbl.bs);}
                 rbreturn.bs = result;
                 return rbreturn;      
             break;
         case OP_UNION:
-                rbl = db_parse_set_operation(db, sop->left_op);
-                rbr = db_parse_set_operation(db, sop->right_op);
+                rbl = db_run_set_operation(db, sop->left_op);
+                rbr = db_run_set_operation(db, sop->right_op);
                 result = bitset_union(rbl.bs, rbr.bs);
                 freeBitsets(rbl, rbr);
                 rbreturn.bs = result;
                 return rbreturn;
             break;
         case OP_INTERSECTION:
-                rbl = db_parse_set_operation(db, sop->left_op);
-                rbr = db_parse_set_operation(db, sop->right_op);
+                rbl = db_run_set_operation(db, sop->left_op);
+                rbr = db_run_set_operation(db, sop->right_op);
                 result = bitset_intersection(rbl.bs, rbr.bs);
                 freeBitsets(rbl, rbr);
                 rbreturn.bs = result;
                 return rbreturn;
             break;
         case OP_DIFFERENCE:
-                rbl = db_parse_set_operation(db, sop->left_op);
-                rbr = db_parse_set_operation(db, sop->right_op);
+                rbl = db_run_set_operation(db, sop->left_op);
+                rbr = db_run_set_operation(db, sop->right_op);
                 result = bitset_intersection(rbl.bs, rbr.bs);
                 freeBitsets(rbl, rbr);
                 rbreturn.bs = result;
@@ -180,4 +180,39 @@ ReturnBitset db_parse_set_operation(Database* db, set_op* sop){
         }
     }
     return rbreturn;
+}
+
+
+QueryReturn* db_run_query(Database* db, query* q){
+    QueryReturn* qr = malloc(sizeof(QueryReturn));
+    SetOpReturn sor = db_run_set_operation(db, q->op);
+    int attributeTables[db->attrCount];
+    int attrTableCount = 0;
+
+    // get all attribute tables, initialize ColumnData structures
+    for (;attrTableCount < q->column_names.length; attrTableCount++){
+        TableData* tb = st_search(db, q->column_names.strings[attrTableCount]);
+        attributeTables[attrTableCount] = tb->index;
+        ColumnData* cd = malloc(sizeof(ColumnData));
+        if(db->attributes[tb->index].type == TYPE_STRING){
+            cd->isString = 1;
+        }
+        else{
+            cd->isString = 0;
+        }
+        cd->memorySize;
+    }
+
+    for (uint64_t i = 0; i < db->keyCount; i++){
+        uint64_t byte_i = i / INTEGER_BIT_SIZE;
+	    uint64_t bit_placement_i = i % INTEGER_BIT_SIZE;
+        for (size_t j = 0; j < attrTableCount; j++){
+            
+        }
+
+	    b->bits[i] = ((uint64_t)1 << bit_placement_i);
+    }
+    
+    free(sor.bs);
+    return qr;
 }
