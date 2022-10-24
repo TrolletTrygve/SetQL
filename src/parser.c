@@ -1065,6 +1065,11 @@ static int parse_create_set(universe * u, char* str, char* error_message, size_t
 
     int error = 0;
 
+    if (strcmp(u->name, set_name) == 0) {
+        sprintf(error_message, "Error creating set. Sets cannot have the same name as the universe.");
+        error = 1;
+    }
+
     if (exists_universe_set(u, set_name)) {
         sprintf(error_message, "Error creating set. Set \"%s\" already exists.", set_name);
         error = 1;
