@@ -32,6 +32,13 @@ int main(void)
 
 	query q = create_empty_query();
 	parse_query(&q, "SELECT name, population FROM COMPLEMENT (COMPLEMENT CanFly);");
+	free_query(&q);
+
+	parse_query(&q, "SELECT name, population FROM UNION (Bird, (COMPLEMENT CanFly));");
+	free_query(&q);
+
+	parse_query(&q, "SELECT name, population FROM COMPLEMENT (UNION ((COMPLEMENT Bird), (INTERSECTION (Bird, CanFly))));");
+	free_query(&q);
 
 	return 0;
 }

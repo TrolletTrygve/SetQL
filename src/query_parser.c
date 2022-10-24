@@ -3,10 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-//#include <ctype.h>
+#include <ctype.h>
 #include <assert.h>
 #include <regex.h>
-//#include <stdarg.h>
 
 static const char* OP_COMPLEMENT_STRING = "COMPLEMENT";
 static const char* OP_UNION_STRING = "UNION";
@@ -55,7 +54,14 @@ static void modify_string_list(string_list* str_list, char** strings, size_t len
     str_list->length = length;
     str_list->strings = copy;
 }
-/*
+
+// It modifies the string to uppercase
+static void str2upper(char* str) {
+    for (size_t i = 0; str[i]!='\0'; i++) {
+        str[i] = toupper(str[i]);
+    }
+}
+
 // Returns the index of the delimiter character and ignoring parenthesis content. Returns -1 if not found
 static int find_delimiter_ignoring_parentheses_content(char* str, char delimiter) {
     assert((delimiter != '(') && (delimiter != ')'));
@@ -68,10 +74,12 @@ static int find_delimiter_ignoring_parentheses_content(char* str, char delimiter
             parentheses_count += -1;
         else if ((current_char == delimiter) && (parentheses_count == 0))
             return i;
-        assert(parentheses_count >= 0);
+        
+        if (parentheses_count < 0)
+            return -1;
     }
     return -1;
-}*/
+}
 
 // SET OPERATION FUNCTIONS
 
@@ -182,6 +190,18 @@ static const char* op_type2string(int op_type) {
     return NULL;
 }
 
+static int string2op_type(const char* string) {
+    if (strcmp(string, OP_COMPLEMENT_STRING) == 0)
+        return OP_COMPLEMENT;
+    if (strcmp(string, OP_UNION_STRING) == 0)
+        return OP_UNION;
+    if (strcmp(string, OP_INTERSECTION_STRING) == 0)
+        return OP_INTERSECTION;
+    if (strcmp(string, OP_DIFFERENCE_STRING) == 0)
+        return OP_DIFFERENCE;
+    return 0;
+}
+
 static void print_set_op(set_op* op) {
     assert(op != NULL);
     if (op->is_leave) {
@@ -255,6 +275,8 @@ static int parse_column_names(query* q, char* str, char* error_message) {
     return error;
 }
 
+static const char* regex_string_parentheses = "^\\s*\\(([^;]+)\\)\\s*$";
+static regex_t regex_parentheses;
 static const char* regex_string_set_name = "^\\s*([a-zA-Z0-9_]+)\\s*$";
 static regex_t regex_set_name;
 static const char* regex_string_set_complement_1 = "^\\s*COMPLEMENT\\s+([a-zA-Z0-9_]+)\\s*$";
@@ -266,9 +288,17 @@ static regex_t regex_set_binary_op;
 
 // Returns NULL if error
 static set_op* parse_set_operation(const char* string, char* error_message) {
-    size_t maxGroups = 4;
+    size_t maxGroups = 3;
     regmatch_t group_array[maxGroups];
     const char* cursor = string;
+
+    if (regexec(&regex_parentheses, cursor, maxGroups, group_array, 0) == 0) {
+        size_t g = 1;
+        char * string_without_parentheses = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
+        set_op* op = parse_set_operation(string_without_parentheses, error_message);
+        free(string_without_parentheses);
+        return op;
+    }
 
     if (regexec(&regex_set_name, cursor, maxGroups, group_array, 0) == 0) {
         size_t g = 1;
@@ -287,7 +317,46 @@ static set_op* parse_set_operation(const char* string, char* error_message) {
         return create_set_op_complement(op, NULL);
     }
 
-    // TODO
+    if (regexec(&regex_set_binary_op, cursor, maxGroups, group_array, 0) == 0) {
+        int error = 0;
+        set_op* op = NULL;
+        char* op_type_string = str_copy_idx(cursor, group_array[1].rm_so, group_array[1].rm_eo); // malloc
+        char* content = str_copy_idx(cursor, group_array[2].rm_so, group_array[2].rm_eo); // malloc
+        // We modify to operation type string to uppercase
+        str2upper(op_type_string);
+        int op_type = string2op_type(op_type_string);
+        // If it does not match a type
+        if (op_type == 0) {
+            sprintf(error_message, "Error parsing: \"%s\" is not a set operation (COMPLEMENT, UNION, INTERSECTION, DIFFERENCE).", op_type_string);
+            error = 1;
+        }
+
+        int split_index = find_delimiter_ignoring_parentheses_content(content, ',');
+
+        if (!error && split_index == -1) {
+            sprintf(error_message, "Error parsing: Missing comma. Expected format: %s (<op_set>, <op_set)", op_type_string);
+            error = 1;
+        }
+
+        if (!error) {
+            // We split the string in two where the comma is
+            content[split_index] = '\0';
+            char* left_op_string = content;
+            char* right_op_string = &content[split_index+1];
+
+            set_op* left_op = parse_set_operation(left_op_string, error_message);
+            if (left_op != NULL) {
+                set_op* right_op = parse_set_operation(right_op_string, error_message);
+                if (right_op != NULL)
+                    op = create_set_op(left_op, right_op, op_type);
+            }
+        }
+
+        free(op_type_string);
+        free(content);
+
+        return op;
+    }
 
     sprintf(error_message, "Error parsing string=%s", string);
 
@@ -338,7 +407,10 @@ static int parse_entire_query(query* q, const char* query_string, char* error_me
 
     q->op = parse_set_operation(set_operation, error_message);
 
-    print_set_op(q->op);  printf("\n"); // TOREMOVE
+    if (q->op != NULL) 
+        {print_set_op(q->op);  printf("\n");} // TOREMOVE
+    else
+        printf("%s\n", error_message); // TOREMOVE
 
     if (q->op == NULL) {
         error = 1;
@@ -361,6 +433,7 @@ static void initialize_regex(void) {
     assert(regcomp(&regex_column_names, regex_string_column_names, REG_EXTENDED | REG_ICASE) == 0);
     assert(regcomp(&regex_query, regex_string_query, REG_EXTENDED | REG_ICASE) == 0);
 
+    assert(regcomp(&regex_parentheses, regex_string_parentheses, REG_EXTENDED | REG_ICASE) == 0);
     assert(regcomp(&regex_set_name, regex_string_set_name, REG_EXTENDED | REG_ICASE) == 0);
     assert(regcomp(&regex_set_complement_1, regex_string_set_complement_1, REG_EXTENDED | REG_ICASE) == 0);
     assert(regcomp(&regex_set_complement_2, regex_string_set_complement_2, REG_EXTENDED | REG_ICASE) == 0);
