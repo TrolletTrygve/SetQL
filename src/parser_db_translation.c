@@ -10,6 +10,7 @@
 int db_addParsedData_keys(Database* db, universe* u);
 int db_addParsedData_sets(Database* db, universe* u);
 int db_addParsedData_attributes(Database* db, universe* u);
+void freeBitsets(ReturnBitset rbl, ReturnBitset rbr);
 
 
 void db_addParsedData(Database* db, universe* u){
@@ -105,4 +106,78 @@ int db_addParsedData_attributes(Database* db, universe* u){
         
     }
     return 0;
+}
+/**
+ * @brief helper function for db_parse_set_operation
+ * 
+ * @param rbl bitset to maybe clear
+ * @param rbr bitset to maybe clear
+ */
+void freeBitsets(ReturnBitset rbl, ReturnBitset rbr){
+    if(rbl.free){free(rbl.bs);}
+    if(rbr.free){free(rbr.bs);}
+}
+
+
+/**
+ * @brief performs the set operation queries
+ * 
+ * 
+ * @param db database
+ * @param sop set operation structure (querie)
+ * @return ReturnBitset, use field .bs for resulting bitset. .bs is allocated memory.
+ * 
+ */
+ReturnBitset db_parse_set_operation(Database* db, set_op* sop){
+    ReturnBitset rbl;
+    ReturnBitset rbr;
+    ReturnBitset rbreturn;
+    rbreturn.free = 1;
+
+    bitset* result;
+
+    if(sop->is_leave){
+        TableData* tb = st_search(db->setNamesTable, sop->set_name);
+        ReturnBitset rb = {.bs = &db->sets[tb->index], .free = 0};
+        return rb;
+    }
+    else{
+        switch (sop->op_type){
+        case OP_COMPLEMENT:
+                rbl = db_parse_set_operation(db, sop->left_op);
+                result = bitset_complement(rbl.bs);
+                if(rbl.free){free(rbl.bs);}
+                rbreturn.bs = result;
+                return rbreturn;      
+            break;
+        case OP_UNION:
+                rbl = db_parse_set_operation(db, sop->left_op);
+                rbr = db_parse_set_operation(db, sop->right_op);
+                result = bitset_union(rbl.bs, rbr.bs);
+                freeBitsets(rbl, rbr);
+                rbreturn.bs = result;
+                return rbreturn;
+            break;
+        case OP_INTERSECTION:
+                rbl = db_parse_set_operation(db, sop->left_op);
+                rbr = db_parse_set_operation(db, sop->right_op);
+                result = bitset_intersection(rbl.bs, rbr.bs);
+                freeBitsets(rbl, rbr);
+                rbreturn.bs = result;
+                return rbreturn;
+            break;
+        case OP_DIFFERENCE:
+                rbl = db_parse_set_operation(db, sop->left_op);
+                rbr = db_parse_set_operation(db, sop->right_op);
+                result = bitset_intersection(rbl.bs, rbr.bs);
+                freeBitsets(rbl, rbr);
+                rbreturn.bs = result;
+                return rbreturn;
+            break;
+        default:
+            fprintf(stderr, "db_parse_set_operation \t- ERROR something went wrong. op_type flag not [1-4].");
+            break;
+        }
+    }
+    return rbreturn;
 }
