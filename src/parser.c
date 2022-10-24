@@ -885,7 +885,7 @@ static int parse_universe_insert_supp(universe * u, char* str, char* error_messa
     if (u->key_values.length == 0) {
         initialize_array_list(&(u->key_values), data_length); // malloc
         initialize_array_list(&(u->attribute_values), data_length); // malloc
-    // If there are values we already keep them
+    // If there are already values we keep them
     } else {
         size_t previous_data_length = u->key_values.length;
         data_length = previous_data_length + data_length;
@@ -1172,11 +1172,29 @@ static int parse_set_insert_supp(universe * u, char* str, char* error_message, s
     // Assert that the inserted values are less or equal to the amount of values in the universe
     assert(current_set_data_length <= u->key_values.length);
 
-    initialize_array_list(&(u->sets[set_index].key_values), current_set_data_length); // malloc with 
+    size_t first_data_index = 0;
+    if (u->key_values.length == 0) {
+        initialize_array_list(&(u->sets[set_index].key_values), current_set_data_length); // malloc
+    // If there are already values we keep them
+    } else {
+        size_t previous_data_length = u->sets[set_index].key_values.length;
+        current_set_data_length = previous_data_length + current_set_data_length;
+
+        char*** previous_key_values = u->sets[set_index].key_values.values;
+
+        initialize_array_list(&(u->sets[set_index].key_values), current_set_data_length); // malloc
+
+        for (size_t i = 0; i < previous_data_length; i++)
+            u->sets[set_index].key_values.values[i] = previous_key_values[i];
+
+        free(previous_key_values);
+
+        first_data_index = previous_data_length;
+    }
 
     int error = 0;
 
-    for (size_t i = 0; i < current_set_data_length; i++) {
+    for (size_t i = first_data_index; i < current_set_data_length; i++) {
         size_t data_index = i;
 
         // Parse key values

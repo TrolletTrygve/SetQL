@@ -12,7 +12,9 @@ INSERT {
 
 CREATE SET Bird;
 
-INSERT {"Gallus gallus domesticus", "Corvus"} INTO Bird;
+INSERT {"Gallus gallus domesticus"} INTO Bird;
+
+INSERT {"Corvus"} INTO Bird;
 
 CREATE SET CanFly;
 
