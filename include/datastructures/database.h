@@ -88,8 +88,6 @@ typedef struct{
  */
 Database* createEmptyDB(long universeSize, long setSize, long attrSize);
 
-void db_addParsedData(Database* db, universe* u);
-
 void db_removeFromSet(Database* db, char*set, char*key);
 
 void db_createSet(Database* db, char*name);
