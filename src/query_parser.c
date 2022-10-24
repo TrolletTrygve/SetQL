@@ -7,6 +7,11 @@
 #include <assert.h>
 #include <regex.h>
 //#include <stdarg.h>
+/*
+static const char* OP_COMPLEMENT_STRING = "COMPLEMENT";
+static const char* OP_UNION_STRING = "UNION";
+static const char* OP_INTERSECTION_STRING = "INTERSECTION";
+static const char* OP_DIFFERENCE_STRING = "DIFFERENCE";*/
 
 // SUPPORT FUNCTIONS 
 
@@ -109,4 +114,29 @@ void free_query(query* q) {
         free_set_op(q->op);
         q->op = NULL;
     }
+}
+
+// REGEX STAFF
+
+static int regex_is_initialized = 0;
+
+// Compile all the regex expressions that will be used in the parsing
+static void initialize_regex(void) {
+    if (regex_is_initialized) return;
+    
+    //assert(regcomp(&regex_value_type, regex_string_value_type, REG_EXTENDED | REG_ICASE) == 0);
+
+    regex_is_initialized = 1;
+}
+
+// static const char* regex_string_query = "^\\s*SELECT\\s*$";
+// static regex_t regex_query;
+
+// If succesful returns 0 and modifies the query
+int parse_query(query* q, const char* query_string) {
+    initialize_regex();
+    // TODO
+    assert(q != NULL);
+    assert(query_string);
+    return -1;
 }
