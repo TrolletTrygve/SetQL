@@ -8,10 +8,10 @@
 #include <regex.h>
 //#include <stdarg.h>
 
-// static const char* OP_COMPLEMENT_STRING = "COMPLEMENT";
-// static const char* OP_UNION_STRING = "UNION";
-// static const char* OP_INTERSECTION_STRING = "INTERSECTION";
-// static const char* OP_DIFFERENCE_STRING = "DIFFERENCE";
+static const char* OP_COMPLEMENT_STRING = "COMPLEMENT";
+static const char* OP_UNION_STRING = "UNION";
+static const char* OP_INTERSECTION_STRING = "INTERSECTION";
+static const char* OP_DIFFERENCE_STRING = "DIFFERENCE";
 
 // SUPPORT FUNCTIONS
 
@@ -55,6 +55,23 @@ static void modify_string_list(string_list* str_list, char** strings, size_t len
     str_list->length = length;
     str_list->strings = copy;
 }
+/*
+// Returns the index of the delimiter character and ignoring parenthesis content. Returns -1 if not found
+static int find_delimiter_ignoring_parentheses_content(char* str, char delimiter) {
+    assert((delimiter != '(') && (delimiter != ')'));
+    int parentheses_count = 0;
+    for (int i = 0; str[i]; i++) {
+        char current_char = str[i];
+        if (current_char == '(')
+            parentheses_count += 1;
+        else if (current_char == ')')
+            parentheses_count += -1;
+        else if ((current_char == delimiter) && (parentheses_count == 0))
+            return i;
+        assert(parentheses_count >= 0);
+    }
+    return -1;
+}*/
 
 // SET OPERATION FUNCTIONS
 
@@ -153,6 +170,36 @@ void free_query(query* q) {
     }
 }
 
+static const char* op_type2string(int op_type) {
+    if (op_type == OP_COMPLEMENT)
+        return OP_COMPLEMENT_STRING;
+    if (op_type == OP_UNION)
+        return OP_UNION_STRING;
+    if (op_type == OP_INTERSECTION)
+        return OP_INTERSECTION_STRING;
+    if (op_type == OP_DIFFERENCE)
+        return OP_DIFFERENCE_STRING;
+    return NULL;
+}
+
+static void print_set_op(set_op* op) {
+    assert(op != NULL);
+    if (op->is_leave) {
+        printf("%s", op->set_name);
+    } else if (op->op_type == OP_COMPLEMENT) {
+        printf("set_op{");
+        printf("%s ", op_type2string(op->op_type));
+        print_set_op(op->left_op);
+        printf("}");
+    } else {
+        printf("set_op{");
+        print_set_op(op->left_op);
+        printf(" %s ", op_type2string(op->op_type));
+        print_set_op(op->right_op);
+        printf("}");
+    }
+}
+
 // REGEX STAFF
 
 static const char* regex_string_column_names = "^,?\\s*([a-zA-Z0-9_]+)\\s*((,\\s*[a-zA-Z0-9_]+\\s*)*)\\s*$";
@@ -208,6 +255,45 @@ static int parse_column_names(query* q, char* str, char* error_message) {
     return error;
 }
 
+static const char* regex_string_set_name = "^\\s*([a-zA-Z0-9_]+)\\s*$";
+static regex_t regex_set_name;
+static const char* regex_string_set_complement_1 = "^\\s*COMPLEMENT\\s+([a-zA-Z0-9_]+)\\s*$";
+static regex_t regex_set_complement_1;
+static const char* regex_string_set_complement_2 = "^\\s*COMPLEMENT\\s*\\(([^;]+)\\)\\s*$";
+static regex_t regex_set_complement_2;
+static const char* regex_string_set_binary_op = "^\\s*([a-zA-Z]+)\\s*\\(([^;]+)\\)\\s*$";
+static regex_t regex_set_binary_op;
+
+// Returns NULL if error
+static set_op* parse_set_operation(const char* string, char* error_message) {
+    size_t maxGroups = 4;
+    regmatch_t group_array[maxGroups];
+    const char* cursor = string;
+
+    if (regexec(&regex_set_name, cursor, maxGroups, group_array, 0) == 0) {
+        size_t g = 1;
+        char * set_name = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
+        return create_set_op_leave(set_name);
+    }
+
+    if ((regexec(&regex_set_complement_1, cursor, maxGroups, group_array, 0) == 0)
+        || (regexec(&regex_set_complement_2, cursor, maxGroups, group_array, 0) == 0)) {
+        size_t g = 1;
+        char * content = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
+        set_op* op = parse_set_operation(content, error_message);
+        free(content);
+        if (op == NULL)
+            return NULL;
+        return create_set_op_complement(op, NULL);
+    }
+
+    // TODO
+
+    sprintf(error_message, "Error parsing string=%s", string);
+
+    return NULL;
+}
+
 static const char* regex_string_query = "^\\s*SELECT\\s+([a-zA-Z0-9_]+\\s*(,\\s*[a-zA-Z0-9_]+\\s*)*)\\s+FROM\\s+([^;]+);$";
 static regex_t regex_query;
 
@@ -250,6 +336,14 @@ static int parse_entire_query(query* q, const char* query_string, char* error_me
 
     printf("set_operation=%s\n", set_operation);  // TOREMOVE
 
+    q->op = parse_set_operation(set_operation, error_message);
+
+    print_set_op(q->op);  printf("\n"); // TOREMOVE
+
+    if (q->op == NULL) {
+        error = 1;
+    }
+
     for (size_t g = 0; g < maxGroups; g++) {
         if (groups[g] != NULL)
             free(groups[g]);
@@ -266,6 +360,11 @@ static void initialize_regex(void) {
     
     assert(regcomp(&regex_column_names, regex_string_column_names, REG_EXTENDED | REG_ICASE) == 0);
     assert(regcomp(&regex_query, regex_string_query, REG_EXTENDED | REG_ICASE) == 0);
+
+    assert(regcomp(&regex_set_name, regex_string_set_name, REG_EXTENDED | REG_ICASE) == 0);
+    assert(regcomp(&regex_set_complement_1, regex_string_set_complement_1, REG_EXTENDED | REG_ICASE) == 0);
+    assert(regcomp(&regex_set_complement_2, regex_string_set_complement_2, REG_EXTENDED | REG_ICASE) == 0);
+    assert(regcomp(&regex_set_binary_op, regex_string_set_binary_op, REG_EXTENDED | REG_ICASE) == 0);
 
     regex_is_initialized = 1;
 }

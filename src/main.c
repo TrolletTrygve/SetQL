@@ -31,7 +31,7 @@ int main(void)
 	free_universe(&u);
 
 	query q = create_empty_query();
-	parse_query(&q, "SELECT name, population FROM Canfly UNION Bird;");
+	parse_query(&q, "SELECT name, population FROM COMPLEMENT (COMPLEMENT CanFly);");
 
 	return 0;
 }
