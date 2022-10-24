@@ -70,8 +70,12 @@ struct set_operation {
     struct set_operation* right_op;
     int op_type;
 };
-
 typedef struct set_operation set_op;
+// e.g. CanFly UNION Bird
+// set_op{is_leave: 0, set_name: NULL,
+//        left_op: set_op{is_leave: 1, set_name: "CanFly", left_op: NULL, right_op: NULL, op_type=0},
+//        right_op: set_op{is_leave: 1, set_name: "BIRD", left_op: NULL, right_op: NULL, op_type=0},
+//        op_type: OP_UNION}
 
 set_op* create_empty_set_op(void);
 
