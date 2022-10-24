@@ -775,7 +775,7 @@ static char* parse_value(char* string_value, int data_type) {
     return NULL;
 }
 
-static const char* any_value = "(([a-zA-Z0-9.+\\-]+)|(\"(([^\"\\\\]|(\\\\.))+)\"))"; // This has 6 groups (We only use group 1)
+static const char* any_value = "(([a-zA-Z0-9_.+\\-]+)|(\"(([^\"\\\\]|(\\\\.))+)\"))"; // This has 6 groups (We only use group 1)
 static char* regex_string_universe_values; // concat8(",?\\s*", any_value, "\\s*((,\\s*", any_value, "\\s*)*)", NULL, NULL, NULL);
 static regex_t regex_universe_values;
 
@@ -1013,7 +1013,7 @@ static int parse_universe_insert(universe * u, char* str, char* error_message) {
     return error;
 }
 
-static const char* regex_string_create_set = "^\\s*CREATE\\s+SET\\s+([a-zA-Z]+)\\s*$";
+static const char* regex_string_create_set = "^\\s*CREATE\\s+SET\\s+([a-zA-Z0-9_]+)\\s*$";
 static regex_t regex_create_set;
 
 // Returns 0 if it is successful
@@ -1194,7 +1194,7 @@ static int parse_set_insert_supp(universe * u, char* str, char* error_message, s
     return error;
 }
 
-static const char* regex_string_set_insert = "^\\s*INSERT\\s*\\{([^;]+)\\}\\s*INTO\\s+([a-zA-Z]+)\\s*$";
+static const char* regex_string_set_insert = "^\\s*INSERT\\s*\\{([^;]+)\\}\\s*INTO\\s+([a-zA-Z0-9_]+)\\s*$";
 static regex_t regex_set_insert;
 
 // Returns 0 if it is successful
