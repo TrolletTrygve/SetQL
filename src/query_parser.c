@@ -1,17 +1,17 @@
 #include "parser.h"
 
-//#include <stdio.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 //#include <ctype.h>
 #include <assert.h>
 #include <regex.h>
 //#include <stdarg.h>
-/*
-static const char* OP_COMPLEMENT_STRING = "COMPLEMENT";
-static const char* OP_UNION_STRING = "UNION";
-static const char* OP_INTERSECTION_STRING = "INTERSECTION";
-static const char* OP_DIFFERENCE_STRING = "DIFFERENCE";*/
+
+// static const char* OP_COMPLEMENT_STRING = "COMPLEMENT";
+// static const char* OP_UNION_STRING = "UNION";
+// static const char* OP_INTERSECTION_STRING = "INTERSECTION";
+// static const char* OP_DIFFERENCE_STRING = "DIFFERENCE";
 
 // SUPPORT FUNCTIONS 
 
@@ -19,6 +19,17 @@ static char* str_copy(const char* str) {
     char* new_str = (char*) malloc((strlen(str) + 1) * sizeof(char));
     strcpy(new_str, str);
     return new_str;
+}
+
+// It copies a string from start_index to end_index-1 (It does a malloc).
+static char* str_copy_idx(const char* str, size_t start_index, size_t end_index) {
+    size_t len = strlen(str);
+    assert(start_index <= len && end_index <= len);
+    char strCopy[len + 1];
+    strcpy(strCopy, str);
+    strCopy[end_index] = '\0';
+    char* new_str = strCopy + start_index;
+    return str_copy(new_str);
 }
 
 set_op* create_empty_set_op(void) {
@@ -118,25 +129,63 @@ void free_query(query* q) {
 
 // REGEX STAFF
 
+static const char* regex_string_query = "^\\s*SELECT\\s+([a-zA-Z0-9_]+\\s*(,\\s*[a-zA-Z0-9_]+\\s*)*)\\s+FROM\\s+([^;]+);$";
+static regex_t regex_query;
+
+// Returns 0 if succesful
+static int parse_entire_query(query* q, const char* query_string, char* error_message) {
+    assert(q != NULL);
+    size_t maxGroups = 4;
+    regmatch_t group_array[maxGroups];
+    char* groups[maxGroups];
+    const char* cursor = query_string;
+
+    if (regexec(&regex_query, cursor, maxGroups, group_array, 0)) {
+        strcpy(error_message, "Error parsing the query. Does not match the pattern: SELECT <name_1>, ... FROM <set_operation> ;");
+        return 1;
+    }
+
+    for (size_t g = 0; g < maxGroups; g++)
+    {
+        groups[g] = NULL;
+        if (group_array[g].rm_eo != -1)
+            groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
+
+    }
+
+    char* column_names = groups[1];
+    char* set_operation = groups[3];
+
+    printf("column_names=%s\n", column_names);  // TOREMOVE
+    printf("set_operation=%s\n", set_operation);  // TOREMOVE
+
+    for (size_t g = 0; g < maxGroups; g++) {
+        if (groups[g] != NULL)
+            free(groups[g]);
+    }
+
+    return 0;
+}
+
 static int regex_is_initialized = 0;
 
 // Compile all the regex expressions that will be used in the parsing
 static void initialize_regex(void) {
     if (regex_is_initialized) return;
     
-    //assert(regcomp(&regex_value_type, regex_string_value_type, REG_EXTENDED | REG_ICASE) == 0);
+    assert(regcomp(&regex_query, regex_string_query, REG_EXTENDED | REG_ICASE) == 0);
 
     regex_is_initialized = 1;
 }
 
-// static const char* regex_string_query = "^\\s*SELECT\\s*$";
-// static regex_t regex_query;
-
 // If succesful returns 0 and modifies the query
 int parse_query(query* q, const char* query_string) {
     initialize_regex();
+    char error_message[200];
+    if (parse_entire_query(q, query_string, error_message)) {
+        printf("%s\n", error_message);
+    }
     // TODO
-    assert(q != NULL);
-    assert(query_string);
+
     return -1;
 }
