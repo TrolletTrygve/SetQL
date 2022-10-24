@@ -2,8 +2,12 @@ CREATE UNIVERSE Animal(scientific_name STRING);
 CREATE ATTRIBUTES Animal(name STRING, population INTEGER);
 
 INSERT {"Gallus gallus domesticus": ("Chicken", 25900000000),
-    "Chiroptera": ("Bat", 1000000000),
-    "Corvus": ("Crow", 31000000)}
+    "Chiroptera": ("Bat", 1000000000)}
+    INTO Animal;
+
+INSERT {
+    "Corvus": ("Crow", 31000000)
+    }
     INTO Animal;
 
 CREATE SET Bird;
