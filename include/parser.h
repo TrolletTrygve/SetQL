@@ -52,8 +52,9 @@ void print_universe(universe u);
 
 void print_string_list(string_list strings);
 
+// If succesful returns 0 and modifies the universe
 // Note: This parser will not work with the char ';' inside of strings
-int parse_initialization(universe* u, const char* file_name);    // TODO
+int parse_initialization(universe* u, const char* file_name);
 
 // QUERY DEFINITIONS AND STRUCTS
 
@@ -74,7 +75,7 @@ typedef struct set_operation set_op;
 // e.g. CanFly UNION Bird
 // set_op{is_leave: 0, set_name: NULL,
 //        left_op: set_op{is_leave: 1, set_name: "CanFly", left_op: NULL, right_op: NULL, op_type=0},
-//        right_op: set_op{is_leave: 1, set_name: "BIRD", left_op: NULL, right_op: NULL, op_type=0},
+//        right_op: set_op{is_leave: 1, set_name: "Bird", left_op: NULL, right_op: NULL, op_type=0},
 //        op_type: OP_UNION}
 
 set_op* create_empty_set_op(void);
@@ -92,5 +93,8 @@ typedef struct {
 query create_empty_query(void);
 
 void free_query(query* q);
+
+// If succesful returns 0 and modifies the query
+int parse_query(query* q, const char* query_string);
 
 #endif
