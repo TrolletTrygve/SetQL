@@ -13,7 +13,16 @@
 // static const char* OP_INTERSECTION_STRING = "INTERSECTION";
 // static const char* OP_DIFFERENCE_STRING = "DIFFERENCE";
 
-// SUPPORT FUNCTIONS 
+// SUPPORT FUNCTIONS
+
+// Count the amounts of times a character appears in a string
+static size_t count_chars(char* str, char c) {
+    size_t count = 0;
+    for (int i = 0; str[i]; i++) {
+        count += (str[i] == c);
+    }
+    return count;
+}
 
 static char* str_copy(const char* str) {
     char* new_str = (char*) malloc((strlen(str) + 1) * sizeof(char));
@@ -31,6 +40,23 @@ static char* str_copy_idx(const char* str, size_t start_index, size_t end_index)
     char* new_str = strCopy + start_index;
     return str_copy(new_str);
 }
+
+static char** copy_string_array(char** strings, size_t length) {
+    char** copy = (char**)malloc(length * sizeof(char*));
+    for (size_t i = 0; i < length; i++) {
+        copy[i] = (char*)malloc((strlen(strings[i])+1) * sizeof(char));
+        strcpy(copy[i], strings[i]);
+    }
+    return copy;
+}
+
+static void modify_string_list(string_list* str_list, char** strings, size_t length) {
+    char** copy = copy_string_array(strings, length);
+    str_list->length = length;
+    str_list->strings = copy;
+}
+
+// SET OPERATION FUNCTIONS
 
 set_op* create_empty_set_op(void) {
     set_op* op = (set_op*)malloc(sizeof(set_op));
@@ -129,6 +155,59 @@ void free_query(query* q) {
 
 // REGEX STAFF
 
+static const char* regex_string_column_names = "^,?\\s*([a-zA-Z0-9_]+)\\s*((,\\s*[a-zA-Z0-9_]+\\s*)*)\\s*$";
+static regex_t regex_column_names;
+
+static int parse_column_names(query* q, char* str, char* error_message) {
+    size_t maxGroups = 4;
+    regmatch_t group_array[maxGroups];
+    char* groups[maxGroups];
+    char* cursor = str;
+    size_t length = count_chars(str, ',') + 1;
+
+    char* data_values[length];
+    memset(data_values, 0, sizeof(data_values));
+
+    int error = 0;
+
+    for (size_t i = 0; i < length; i++) {
+
+        if (regexec(&regex_column_names, cursor, maxGroups, group_array, 0)) {
+            strcpy(error_message, "Error parsing the values.");
+            error = 1;
+            break;
+        }
+
+        for (size_t g = 0; g < maxGroups; g++)
+        {
+            groups[g] = NULL;
+            if (group_array[g].rm_eo != -1)
+                groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
+        }
+
+        data_values[i] = str_copy(groups[1]);
+
+        size_t offset = group_array[2].rm_so;
+
+        for (size_t g = 0; g < maxGroups; g++) {
+            if (groups[g] != NULL)
+                free(groups[g]);
+        }
+
+        cursor += offset;
+
+    }
+
+    modify_string_list(&q->column_names, data_values, length);
+
+    for (size_t i = 0; i < length; i++) {
+        if (data_values[i] != NULL)
+            free(data_values[i]);
+    }
+
+    return error;
+}
+
 static const char* regex_string_query = "^\\s*SELECT\\s+([a-zA-Z0-9_]+\\s*(,\\s*[a-zA-Z0-9_]+\\s*)*)\\s+FROM\\s+([^;]+);$";
 static regex_t regex_query;
 
@@ -153,10 +232,22 @@ static int parse_entire_query(query* q, const char* query_string, char* error_me
 
     }
 
+    int error = 0;
+
     char* column_names = groups[1];
     char* set_operation = groups[3];
 
     printf("column_names=%s\n", column_names);  // TOREMOVE
+
+    if (parse_column_names(q, column_names, error_message)) {
+        strcpy(error_message, "Error parsing column names in the query.");
+        error = 1;
+    }
+
+    for (size_t i = 0; i < q->column_names.length; i++) {
+        printf("Value %zu:\"%s\"\n", i, q->column_names.strings[i]);    // TOREMOVE
+    }
+
     printf("set_operation=%s\n", set_operation);  // TOREMOVE
 
     for (size_t g = 0; g < maxGroups; g++) {
@@ -164,7 +255,7 @@ static int parse_entire_query(query* q, const char* query_string, char* error_me
             free(groups[g]);
     }
 
-    return 0;
+    return error;
 }
 
 static int regex_is_initialized = 0;
@@ -173,6 +264,7 @@ static int regex_is_initialized = 0;
 static void initialize_regex(void) {
     if (regex_is_initialized) return;
     
+    assert(regcomp(&regex_column_names, regex_string_column_names, REG_EXTENDED | REG_ICASE) == 0);
     assert(regcomp(&regex_query, regex_string_query, REG_EXTENDED | REG_ICASE) == 0);
 
     regex_is_initialized = 1;
@@ -184,8 +276,8 @@ int parse_query(query* q, const char* query_string) {
     char error_message[200];
     if (parse_entire_query(q, query_string, error_message)) {
         printf("%s\n", error_message);
+        return 1;
     }
-    // TODO
 
-    return -1;
+    return 0;
 }
