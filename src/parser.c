@@ -1,8 +1,6 @@
 #include "parser.h"
 
 #include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -11,8 +9,10 @@
 #include <stdarg.h>
 
 #define MAX_ULONG ((size_t) -1)
+#define TRUE 1
+#define FALSE 0
 
-// SUPPORT FUNCTIONS
+// SUPPORT FUNCTIONS 
 
 static char* str_copy(char* str) {
     char* new_str = (char*) malloc((strlen(str) + 1) * sizeof(char));
@@ -110,11 +110,26 @@ static char*** copy_string_matrix2d(const char** values[], size_t length_1, size
     return copy;
 }
 
+void initialize_string_list(string_list* sl_ptr, size_t length) {
+    sl_ptr->length = length;
+    if (length > 0) {
+        sl_ptr->strings = (char**)malloc(length * sizeof(char*));
+        for(size_t i = 0; i < length; i++)
+            sl_ptr->strings[i] = NULL;
+    } else {
+        sl_ptr->strings = NULL;
+    }
+}
+
 static void initialize_array_list(array_list* al_ptr, size_t length) {
     al_ptr->length = length;
-    al_ptr->values = (char***)malloc(length * sizeof(char**));
-    for(size_t i = 0; i < length; i++)
-        al_ptr->values[i] = NULL;
+    if (length > 0) {
+        al_ptr->values = (char***)malloc(length * sizeof(char**));
+        for(size_t i = 0; i < length; i++)
+            al_ptr->values[i] = NULL;
+    } else {
+        al_ptr->values = NULL;
+    }
 }
 
 static void initialize_sets(universe* u, size_t length) {
@@ -186,10 +201,89 @@ static void modify_u_set(universe u, size_t set_index, const char* name, const c
     modify_set(&u.sets[set_index], name, values, length, u.key_data_type_names.length);
 }
 
-// CREATE UNIVERSE
+// CREATE EMPTY UNIVERSE
+
+universe create_empty_universe(void) {
+    universe u;
+    strcpy(u.name, "");
+
+    initialize_string_list(&u.key_data_type_names, 0);
+    initialize_string_list(&u.key_data_names, 0);
+    initialize_string_list(&u.attribute_data_type_names, 0);
+    initialize_string_list(&u.key_data_names, 0);
+
+    initialize_array_list(&u.key_values, 0);
+    initialize_array_list(&u.attribute_values, 0);
+
+    u.sets = NULL;
+    u.sets_length = 0;
+    
+    return u;
+}
+
+// FREE MEMORY OF UNIVERSE
+
+void free_string_list(string_list* sl_ptr) {
+    if (sl_ptr == NULL) return;
+    if (sl_ptr->length == 0 || sl_ptr->strings == NULL) return;
+
+    for(size_t i = 0; i < sl_ptr->length; i++) {
+        if (sl_ptr->strings[i] != NULL)
+            free(sl_ptr->strings[i]);
+    }
+    free(sl_ptr->strings);
+    sl_ptr->length = 0;
+    sl_ptr->strings = NULL;
+}
+
+static void free_array_list(array_list* sl_ptr, size_t data_type_length) {
+    if (sl_ptr == NULL) return;
+    if (sl_ptr->length == 0 || sl_ptr->values == NULL) return;
+
+    for(size_t i = 0; i < sl_ptr->length; i++) {
+        if (sl_ptr->values[i] != NULL) {
+            for (size_t j = 0; j < data_type_length; j++) {
+                if (sl_ptr->values[i][j] != NULL)
+                    free(sl_ptr->values[i][j]);
+            }
+            free(sl_ptr->values[i]);
+        }
+    }
+    free(sl_ptr->values);
+    sl_ptr->length = 0;
+    sl_ptr->values = NULL;
+}
+
+static void free_sets(universe* u, size_t key_data_type_length) {
+    if (u == NULL || u->sets == NULL || u->sets_length == 0) return;
+
+    for(size_t i = 0; i < u->sets_length; i++) {
+        free_array_list(&u->sets[i].key_values, key_data_type_length);
+    }
+    free(u->sets);
+    u->sets_length = 0;
+    u->sets = NULL;
+}
+
+void free_universe(universe* u) {
+    size_t key_data_type_length = u->key_data_type_names.length;
+    size_t attribute_data_type_length = u->attribute_data_type_names.length;
+
+    free_string_list(&u->key_data_type_names);
+    free_string_list(&u->key_data_names);
+    free_string_list(&u->attribute_data_type_names);
+    free_string_list(&u->attribute_data_names);
+
+    free_array_list(&u->key_values, key_data_type_length);
+    free_array_list(&u->attribute_values, attribute_data_type_length);
+
+    free_sets(u, key_data_type_length);
+}
+
+// CREATE UNIVERSE EXAMPLE
 
 universe create_universe_example(void){   
-    universe u;
+    universe u = create_empty_universe();
     // Set universe name
 	strcpy(u.name, "Animal");
 
@@ -308,7 +402,6 @@ void print_universe(universe u){            // TODO
     printf("Attribute values: ");
     print_attribute_values(u);
     printf("\n\n");
-    if (1) return; // TOREMOVE
 
     printf("Sets: \n");
     print_sets(u);
@@ -317,9 +410,9 @@ void print_universe(universe u){            // TODO
 
 // UNIVERSE PARSE
 
-// Count the amounts of times a character apperas in a string
+// Count the amounts of times a character appears in a string
 static size_t count_chars(char* str, char c) {
-    int count = 0;
+    size_t count = 0;
     for (int i = 0; str[i]; i++) {
         count += (str[i] == c);
     }
@@ -327,7 +420,46 @@ static size_t count_chars(char* str, char c) {
 }
 
 static int count_lines(char* str) {
-    return count_chars(str, '\n');
+    return (int) count_chars(str, '\n');
+}
+
+// Count the amounts of times a character delimiter appears in a string (ignoring if they are inside of quoting "")
+static size_t count_delimiter(char* str, char delimiter) {
+    assert(delimiter != '"');
+    size_t count = 0;
+    char previous_char = '\0';
+    int inside_string = FALSE;
+    for (int i = 0; str[i]; i++) {
+        char current_char = str[i];
+        if (current_char == '"' && (previous_char != '\\'))
+            inside_string = !inside_string;
+        else if (!inside_string && (current_char == delimiter))
+            count += 1;
+        previous_char = current_char;
+    }
+    return count;
+}
+
+// Count the amounts of times a character delimiter appears in a string (ignoring if they are inside of quoting "") and ignoring parenthesis content
+static size_t count_delimiter_ignoring_parentheses_content(char* str, char delimiter) {
+    assert((delimiter != '"') && (delimiter != '(') && (delimiter != ')'));
+    size_t count = 0;
+    char previous_char = '\0';
+    int inside_string = FALSE;
+    int inside_parentheses = FALSE;
+    for (int i = 0; str[i]; i++) {
+        char current_char = str[i];
+        if (current_char == '"' && (previous_char != '\\'))
+            inside_string = !inside_string;
+        else if (!inside_parentheses && (current_char == '('))
+            inside_parentheses = TRUE;
+        else if (inside_parentheses && (current_char == ')'))
+            inside_parentheses = FALSE;
+        else if ((!inside_string && !inside_parentheses) && (current_char == delimiter))
+            count += 1;
+        previous_char = current_char;
+    }
+    return count;
 }
 
 static const char* regex_string_value_type = ",?\\s*(\\w+)\\s+(\\w+)\\s*((,\\s*\\w+\\s+\\w+\\s*)*)";
@@ -338,7 +470,7 @@ static int parse_universe_value_type(universe * u, char* str, char* error_messag
     regmatch_t group_array[maxGroups];
     char* groups[maxGroups];
     char* cursor = str;
-    size_t data_type_length = count_chars(str, ',') + 1;
+    size_t data_type_length = count_delimiter(str, ',') + 1;
 
     char* key_data_type_names[data_type_length];
     char* key_data_names[data_type_length];
@@ -408,10 +540,6 @@ static int parse_universe_definition(universe * u, char* str, char* error_messag
         groups[g] = NULL;
             if (group_array[g].rm_eo != -1)
                 groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
-        /*TOREMOVE
-        printf("Group %u: [%2u-%2u]: %s\n",
-                g, group_array[g].rm_so, group_array[g].rm_eo,
-                groups[g]);*/ 
 
     }
 
@@ -441,7 +569,7 @@ static int parse_attributes_value_type(universe * u, char* str, char* error_mess
     regmatch_t group_array[maxGroups];
     char* groups[maxGroups];
     char* cursor = str;
-    size_t data_type_length = count_chars(str, ',') + 1;
+    size_t data_type_length = count_delimiter(str, ',') + 1;
 
     char* attribute_data_type_names[data_type_length];
     char* attribute_data_names[data_type_length];
@@ -656,8 +784,8 @@ static int parse_universe_values(universe * u, char* str, char* error_message, s
     regmatch_t group_array[maxGroups];
     char* groups[maxGroups];
     char* cursor = str;
-    //size_t data_type_length = count_chars(str, ',') + 1;
-    if (data_type_length != count_chars(str, ',') + 1) {
+    //size_t data_type_length = count_delimiter(str, ',') + 1;
+    if (data_type_length != count_delimiter(str, ',') + 1) {
         strcpy(error_message, "Error parsing values: Wrong amount of values");
         return 1;
     }
@@ -666,8 +794,6 @@ static int parse_universe_values(universe * u, char* str, char* error_message, s
     memset(data_values, 0, sizeof(data_values));
 
     int error = 0;
-
-    printf("regex_string_universe_values=%s\n", regex_string_universe_values);// TOREMOVE
 
     for (size_t i = 0; i < data_type_length; i++) {
 
@@ -684,7 +810,6 @@ static int parse_universe_values(universe * u, char* str, char* error_message, s
                 groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
         }
 
-        printf("Data values %zu: %s\n", i, groups[1]);     // TOREMOVE
         data_values[i] = str_copy(groups[1]);
 
         size_t offset = group_array[7].rm_so;
@@ -696,8 +821,6 @@ static int parse_universe_values(universe * u, char* str, char* error_message, s
         }
 
     }
-
-    for (size_t i = 0; i < data_type_length; i++) printf("Data value %zu=%s\n", i, data_values[i]); // TOREMOVE
 
     char* parsed_data_values[data_type_length];
     memset(parsed_data_values, 0, sizeof(parsed_data_values));
@@ -730,15 +853,8 @@ static int parse_universe_values(universe * u, char* str, char* error_message, s
         }
     }
 
-    for (size_t i = 0; i < data_type_length; i++) printf("Parsed data value %zu=%s\n", i, parsed_data_values[i]); // TOREMOVE
-
-    if (!error) printf("!error\n");   // TOREMOVE
-    if (values_ptr->values[data_index] != NULL) printf("values_ptr->values[data_index] != NULL\n");   // TOREMOVE
-
     if (!error)
         values_ptr->values[data_index] = copy_string_array2(parsed_data_values, data_type_length);
-
-    for (size_t i = 0; i < data_type_length; i++) printf("values_ptr->values[%zu][%zu]=%s\n", data_index, i, values_ptr->values[data_index][i]); // TOREMOVE
     
     for (size_t i = 0; i < data_type_length; i++) {
         if (data_values[i] != NULL)
@@ -761,9 +877,7 @@ static int parse_universe_insert_supp(universe * u, char* str, char* error_messa
     char* groups[maxGroups];
     char* cursor = str;
 
-    size_t data_length = count_chars(str, ':');
-
-    printf("Lets initialize the key_values\n"); // TOREMOVE
+    size_t data_length = count_delimiter(str, ':');
 
     initialize_array_list(&(u->key_values), data_length); // malloc
     initialize_array_list(&(u->attribute_values), data_length); // malloc
@@ -773,15 +887,10 @@ static int parse_universe_insert_supp(universe * u, char* str, char* error_messa
 
     int error = 0;
 
-    printf("The loop is about to start\n"); // TOREMOVE
-
     for (size_t i = 0; i < data_length; i++) {
         size_t data_index = i;
 
         // Parse key values
-
-        printf("Universe insert supp: parsing values in row %zu at insert supp.\n", i); // TOREMOVE
-        printf("Regex expression:%s\n", regex_string_universe_insert_supp); // TOREMOVE
 
         if (regexec(&regex_universe_insert_supp, cursor, maxGroups, group_array, 0)) {
             sprintf(error_message, "Error parsing key values in row %zu at insert supp.", i);
@@ -794,7 +903,6 @@ static int parse_universe_insert_supp(universe * u, char* str, char* error_messa
             groups[g] = NULL;
             if (group_array[g].rm_eo != -1)
                 groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
-            if (g == 0) printf("Group 0: %s\n", groups[0]); // TOREMOVE
         }
 
         char* key_values_string = str_copy(groups[1]);
@@ -816,9 +924,9 @@ static int parse_universe_insert_supp(universe * u, char* str, char* error_messa
             error = 1;
         }
 
+        free(key_values_string);
+
         cursor += offset+1; // The pointer ^<keys>:<attributes> moves towards <keys>:^<attributes>
-        
-        printf("Attribute string:\"%s\"\n", cursor);    // TOREMOVE
 
         if (error)
             break;
@@ -836,7 +944,6 @@ static int parse_universe_insert_supp(universe * u, char* str, char* error_messa
             groups[g] = NULL;
             if (group_array[g].rm_eo != -1)
                 groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
-            if (g == 0) printf("Group 0: %s\n", groups[0]); // TOREMOVE
         }
 
         char* attribute_values_string = str_copy(groups[1]);
@@ -851,6 +958,8 @@ static int parse_universe_insert_supp(universe * u, char* str, char* error_messa
             // strcpy(error_message, "Error parsing attribute values.");
             error = 1;
         }
+
+        free(attribute_values_string );
 
         cursor += offset;
 
@@ -891,7 +1000,6 @@ static int parse_universe_insert(universe * u, char* str, char* error_message) {
         error = 1;
     }
 
-    printf("universe insert values: %s\n", groups[1]);    // TOREMOVE
     if (!error && parse_universe_insert_supp(u, groups[1], error_message)) {
         // error_message
         error = 1;
@@ -950,6 +1058,186 @@ static int parse_create_set(universe * u, char* str, char* error_message, size_t
     return error;
 }
 
+static int parse_set_values(universe * u, char* str, char* error_message, size_t data_index, size_t set_index) {
+    size_t maxGroups = 15;
+    regmatch_t group_array[maxGroups];
+    char* groups[maxGroups];
+    char* cursor = str;
+
+    size_t data_type_length = u->key_data_type_names.length;
+    // size_t data_type_length = count_delimiter(str, ',') + 1;
+    if (data_type_length != count_delimiter(str, ',') + 1) {
+        strcpy(error_message, "Error parsing set values: Wrong amount of values");
+        return 1;
+    }
+
+    char* data_values[data_type_length];
+    memset(data_values, 0, sizeof(data_values));
+
+    int error = 0;
+
+    for (size_t i = 0; i < data_type_length; i++) {
+
+        if (regexec(&regex_universe_values, cursor, maxGroups, group_array, 0)) {
+            strcpy(error_message, "Error parsing the values.");
+            error = 1;
+            break;
+        }
+
+        for (size_t g = 0; g < maxGroups; g++)
+        {
+            groups[g] = NULL;
+            if (group_array[g].rm_eo != -1)
+                groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
+        }
+
+        data_values[i] = str_copy(groups[1]);
+
+        size_t offset = group_array[7].rm_so;
+        cursor += offset;
+
+        for (size_t g = 0; g < maxGroups; g++) {
+            if (groups[g] != NULL)
+                free(groups[g]);
+        }
+
+    }
+
+    char* parsed_data_values[data_type_length];
+    memset(parsed_data_values, 0, sizeof(parsed_data_values));
+
+    //Parse data
+
+    assert(data_index < u->key_values.length);
+    assert(data_type_length == u->key_data_type_names.length);
+    assert(set_index < u->sets_length);
+
+    for (size_t i = 0; i < data_type_length; i++) {
+        int data_type = type_name2data_type(u->key_data_type_names.strings[i]);
+        parsed_data_values[i] = parse_value(data_values[i], data_type);
+        if (parsed_data_values[i] == NULL) {
+            sprintf(error_message, "Error parsing key value %s of type %s.", data_values[i], u->key_data_type_names.strings[i]);
+            error = 1;
+            break;
+        }
+    }
+
+    if (!error)
+        u->sets[set_index].key_values.values[data_index] = copy_string_array2(parsed_data_values, data_type_length); 
+    
+    for (size_t i = 0; i < data_type_length; i++) {
+        if (data_values[i] != NULL)
+            free(data_values[i]);
+        if (parsed_data_values[i] != NULL)
+            free(parsed_data_values[i]);
+    }
+
+    return error;
+}
+
+// Returns 0 if it is successful
+static int parse_set_insert_supp(universe * u, char* str, char* error_message, size_t set_index) {
+    size_t maxGroups = 23;
+    regmatch_t group_array[maxGroups];
+    char* groups[maxGroups];
+    char* cursor = str;
+
+    size_t current_set_data_length = count_delimiter_ignoring_parentheses_content(str, ',') + 1;
+
+    // Assert that the inserted values are less or equal to the amount of values in the universe
+    assert(current_set_data_length <= u->key_values.length);
+
+    initialize_array_list(&(u->sets[set_index].key_values), current_set_data_length); // malloc with 
+
+    int error = 0;
+
+    for (size_t i = 0; i < current_set_data_length; i++) {
+        size_t data_index = i;
+
+        // Parse key values
+
+        if (regexec(&regex_universe_insert_supp, cursor, maxGroups, group_array, 0)) {
+            sprintf(error_message, "Error parsing key values in row %zu at insert set supp.", i);
+            error = 1;
+            break;
+        }
+
+        for (size_t g = 0; g < maxGroups; g++)
+        {
+            groups[g] = NULL;
+            if (group_array[g].rm_eo != -1)
+                groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
+        }
+
+        char* key_values_string = str_copy(groups[1]);
+        size_t offset = group_array[0].rm_eo;
+
+        for (size_t g = 0; g < maxGroups; g++) {
+            if (groups[g] != NULL)
+                free(groups[g]);
+        }
+
+        if (parse_set_values(u, key_values_string, error_message, data_index, set_index)) {
+            // strcpy(error_message, "Error parsing key values.");
+            error = 1;
+        }
+
+        cursor += offset;
+
+        free(key_values_string);
+
+        if (error)
+            return error;
+        
+    }
+
+    return error;
+}
+
+static const char* regex_string_set_insert = "^\\s*INSERT\\s*\\{([^;]+)\\}\\s*INTO\\s+([a-zA-Z]+)\\s*$";
+static regex_t regex_set_insert;
+
+// Returns 0 if it is successful
+static int parse_set_insert(universe * u, char* str, char* error_message) {
+    size_t maxGroups = 3;
+    regmatch_t group_array[maxGroups];
+    char* groups[maxGroups];
+    char* cursor = str;
+
+    if (regexec(&regex_universe_insert, cursor, maxGroups, group_array, 0)) {
+        strcpy(error_message, "Error parsing the set insert.");
+        return 1;
+    }
+
+    for (size_t g = 0; g < maxGroups; g++)
+    {
+        groups[g] = NULL;
+        if (group_array[g].rm_eo != -1)
+            groups[g] = str_copy_idx(cursor, group_array[g].rm_so, group_array[g].rm_eo); // malloc
+    }
+
+    int error = 0;
+
+    char* set_name = groups[2];
+    size_t set_index = universe_set_position(u, set_name);
+    if (set_index == MAX_ULONG) {   // If set does not exist
+        sprintf(error_message, "Error parsing set insert. Set \"%s\" does not exist", set_name);
+        error = 1;
+    }
+
+    if (!error) {
+        if (parse_set_insert_supp(u, groups[1], error_message, set_index))
+            error = 1;
+    }
+
+    for (size_t g = 0; g < maxGroups; g++) {
+        if (groups[g] != NULL)
+            free(groups[g]);
+    }
+
+    return error;
+}
+
 static int regex_is_initialized = 0;
 
 // Compile all the regex expressions that will be used in the parsing
@@ -967,15 +1255,13 @@ static void initialize_regex(void) {
     regex_string_universe_values = str_concat(5,"^\\s*[(,]?\\s*", any_value, "\\s*((,\\s*", any_value, "\\s*)*)");
     assert(regcomp(&regex_universe_values, regex_string_universe_values, REG_EXTENDED | REG_ICASE) == 0);
     /*regex_string_universe_insert_supp = str_concat(14, "^,?\\s*((", any_value, ")|(\\(", any_value, "(\\s*,\\s*", any_value, ")*\\)))\\s*:"
-                                                       , "\\s*((", any_value, ")|(\\(", any_value, "(\\s*,\\s*", any_value, ")*\\)))\\s*((,[^,]+)*)");
-    regex_string_universe_insert_supp = str_concat(7, "^,?\\s*((", any_value, ")|(\\(", any_value, "(\\s*,\\s*", any_value, ")*\\)))\\s*");
-    regex_string_universe_insert_supp = str_concat(10, "^,?\\s*((\\(", any_value, "(\\s*,\\s*", any_value, ")*\\)))\\s*:"
-                                                       , "\\s*((\\(", any_value, "(\\s*,\\s*", any_value, ")*\\)))\\s*((,[^,]+)*)");*/
+                                                       , "\\s*((", any_value, ")|(\\(", any_value, "(\\s*,\\s*", any_value, ")*\\)))\\s*((,[^,]+)*)");*/
     regex_string_universe_insert_supp = str_concat(7, "^,?\\s*((", any_value, ")|(\\(", any_value, "(\\s*,\\s*", any_value, ")*\\)))\\s*");
     assert(regcomp(&regex_universe_insert_supp, regex_string_universe_insert_supp, REG_EXTENDED | REG_ICASE) == 0);
     assert(regcomp(&regex_universe_insert, regex_string_universe_insert, REG_EXTENDED | REG_ICASE) == 0);
     // Create set
     assert(regcomp(&regex_create_set, regex_string_create_set, REG_EXTENDED | REG_ICASE) == 0);
+    assert(regcomp(&regex_set_insert, regex_string_set_insert, REG_EXTENDED | REG_ICASE) == 0);
 
     regex_is_initialized = 1;
 }
@@ -988,7 +1274,7 @@ int parse_initialization(universe* u, const char* file_name) {
     FILE* ptr = fopen(file_name, "r");
     assert(ptr != NULL); // Check that the file exists
 
-    size_t buffer_size = 1024;
+    size_t buffer_size = 1024*1024;
     char* buffer = (char*) malloc(buffer_size * sizeof(char));
     int line = 1;
 
@@ -1045,7 +1331,6 @@ int parse_initialization(universe* u, const char* file_name) {
     for (int i = 0; i < 3; i++)
         fscanf(ptr, "%[^;];", buffer);
 
-    printf("sets_counts:%zu\n", sets_count); // TOREMOVE
     initialize_sets(u, sets_count);
 
     size_t set_index = 0;
@@ -1062,7 +1347,10 @@ int parse_initialization(universe* u, const char* file_name) {
             
             set_index += 1;
         } else {
-            // TODO
+            if(parse_set_insert(u, buffer, error_message)) {
+                printf("<Lines %u-%u>: %s\n", line, line+count_lines(buffer), error_message);
+                return 1;
+            }
         }
 
         line += count_lines(buffer);

@@ -23,63 +23,13 @@ int main(void)
 	//universe u = create_universe_example();
 	//print_universe(u);
 
-	universe u;
+	universe u = create_empty_universe();
 	parse_initialization(&u, "./initialization_example.txt");
 
 	print_universe(u);
-	bitset_test();
-	db_test();
-	// pipe
-	int fd[2];
-	if (pipe(fd) == -1)
-	{
-		fprintf(stderr, "Error: pipe\n");
-		return -1;
-	}
 
-	int pid = fork();
-	if (pid < 0)
-	{
-		fprintf(stderr, "Error: fork\n");
-		return -1;
-	}
+	free_universe(&u);
 
-	// Child process (terminal input)
-	if (pid == 0)
-	{
-		pid = (int)getpid();
-		printf("Child! pid: %d\n", pid);
-		dbms_networking_initialize(8080, &test_function);
-		dbms_networking_add_pipe_client(fd[PIPE_READ_END], fd[PIPE_WRITE_END]);
-		dbms_start();
-		dbms_networking_kill();
-	}
-	// Parent process (start server)
-	else
-	{
-		printf("Parent! pid: %d\n", pid);
-
-		char str[128];
-		fgets(str, 128, stdin);
-		str[strlen(str)-1] = '\0';
-
-		while(str[0] != 'q')
-		{
-			write(fd[1], str, strlen(str)+1);
-
-			fgets(str, 128, stdin);
-			str[strlen(str)-1] = '\0';
-		}
-
-		int status, cid;
-        cid = wait(&status);
-        if (cid != pid)
-        {
-        	perror("wait");
-        	return -1;
-        }
-        printf("Cool!\n");
-	}
 	return 0;
 }
 
