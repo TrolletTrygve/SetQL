@@ -1274,7 +1274,7 @@ int parse_initialization(universe* u, const char* file_name) {
     FILE* ptr = fopen(file_name, "r");
     assert(ptr != NULL); // Check that the file exists
 
-    size_t buffer_size = 1024;
+    size_t buffer_size = 1024*1024;
     char* buffer = (char*) malloc(buffer_size * sizeof(char));
     int line = 1;
 
