@@ -11,6 +11,20 @@ int test_function(char msg[MAX_MESSAGE_SIZE], int size, client_id id);
 int test_function(char msg[MAX_MESSAGE_SIZE], int size, client_id id)
 {
 	printf("Message recieved: \"%s\" from %d with size %d\n", msg, id, size);
+
+
+	char memes[][64] = {"Hello", "my", "name", "is", "bla"}; 
+
+	for (int i = 0; i < 5; i++)
+	{
+		printf("%s\n", memes[i]);
+	}
+
+	uint64_t meme_size = 5 * 64;
+
+	dbms_networking_send((char*)(&meme_size), 8, id);
+	dbms_networking_send((char*)(memes), meme_size, id);
+
 	return 1;
 }
 

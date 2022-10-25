@@ -12,7 +12,7 @@ h1 {
 	text-align: center;
 }
 
-#species-list
+#cities-list
 {
 	border-style: solid;
 
@@ -23,7 +23,7 @@ h1 {
 	list-style: none;
 }
 
-#species-list li {
+#cities-list li {
 	padding-left: 20px;
 	padding-right: 20px;
 
@@ -34,6 +34,6 @@ h1 {
 	border-top-style: solid;
 }
 
-#species-list li:first-child {
+#cities-list li:first-child {
 	border-top-style: none;
 }

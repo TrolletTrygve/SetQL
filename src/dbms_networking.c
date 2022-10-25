@@ -424,6 +424,65 @@ int dbms_start(void)
 
 
 /**
+ * 	dbms_networking_send(buffer, size, id)
+ * 
+ * 	Sends a message to the specified socket
+ * 	(REQUIRES THAT INITIALIZE HAS BEEN CALLED)
+ * 
+ * 	argument 0:	The buffer where the message is stored
+ * 	argument 1:	The size of the message in bytes
+ * 	argument 2:	The client to send the message to
+ * 
+ * 	returns: 1 on success, 0 on fail
+ */
+int dbms_networking_send(char* buffer, int size, client_id id)
+{
+	if (!dbms_started)
+	{
+		fprintf(stderr, "%s\n", "Error: dbms_networking_send");
+		fprintf(stderr, "%s\n", "DBMS has not been initialized");
+		return 0;
+	}
+
+	if (id >= client_count)
+	{
+		fprintf(stderr, "%s\n", "Error: dbms_networking_send");
+		fprintf(stderr, "%s\n", "The client id does not exist");
+		return 0;
+	}
+	
+    int result;
+
+	switch(client_types[id])
+	{
+		case CLIENT_TYPE_SOCKET:
+		{
+			result = send(client_write_fds[id], buffer, size, 0);
+		} break;
+		case CLIENT_TYPE_PIPE:
+		{
+			result = write(client_write_fds[id], buffer, size);
+		} break;
+		default:
+		{
+			fprintf(stderr, "%s\n", "Error: dbms_networking_send");
+			fprintf(stderr, "%s\n", "Unknown client type");
+			return 0;
+		} break;
+	}
+
+	if (result != size)
+	{
+		fprintf(stderr, "%s\n", "Error: dbms_networking_send");
+		fprintf(stderr, "%s\n", "All data was not sent properly");
+		return 0;
+	}
+
+	return result;
+}
+
+
+/**
  * 	dbms_networking_kill()
  * 
  * 	Frees memory and closes sockets

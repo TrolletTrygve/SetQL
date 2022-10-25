@@ -1,5 +1,11 @@
 import socket
 import time
+import select
+
+def read_string(socket, size):
+	byte_arr = socket.recv(size)
+	string = byte_arr.decode('utf-8')
+	return string
 
 class DBMS_COM(object):
 
@@ -23,6 +29,32 @@ class DBMS_COM(object):
 
 	def send_query(self, query):
 		self.sock.sendall(bytearray(query, "utf-8"))
+
+
+	def fetch_result(self):
+		print("whaat")
+
+		data = None
+		ready = select.select([self.sock], [], [], 0.5)
+		if ready[0]:
+			data = self.sock.recv(8)
+
+		if not (data is None):
+			size = int.from_bytes(data, "little")
+			print(size)
+
+			e_size = int(size / 5);
+
+			integer_list = []
+			for i in range(5):
+				string = read_string(self.sock, e_size)
+				print(string)
+				#integer = int.from_bytes(byte_arr, "little")
+				#integer_list.append(integer)
+
+			#print(integer_list)
+
+
 
 	def close_connection(self):
 		self.sock.close()

@@ -14,6 +14,8 @@ typedef int (*message_func_p)(char[MAX_MESSAGE_SIZE], int, client_id);
 int dbms_networking_initialize(uint16_t port, message_func_p message_handler);
 int dbms_networking_add_pipe_client(int read_fd, int write_fd);
 
+int dbms_networking_send(char* buffer, int size, client_id id);
+
 int dbms_start(void);
 int dbms_networking_kill(void);
 
