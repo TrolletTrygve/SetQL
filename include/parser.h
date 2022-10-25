@@ -61,7 +61,7 @@ int parse_initialization(universe* u, const char* file_name);
 #define OP_COMPLEMENT   1
 #define OP_UNION        2
 #define OP_INTERSECTION 3
-#define OP_DIFFERENCE   4   // This type will not appear in the struct set_operation (INTERSECTION and COMPLEMENT will be used instead)
+#define OP_DIFFERENCE   4 
 
 struct set_operation {
     int is_leave;
@@ -84,6 +84,8 @@ void free_set_op(set_op* op);
 
 set_op* create_set_op_leave(const char* set_name);
 set_op* create_set_op(set_op* left_op, set_op* right_op, int op_type);
+
+void print_set_op(set_op* op);
 
 typedef struct {
     string_list column_names;

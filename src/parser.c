@@ -1,3 +1,15 @@
+/**
+ * @file parser.c
+ * @author Jose Ruiz Alarcon
+ * @brief This file contains implementations for the header file "parser.h".
+ * It implements different functions for the type universe, set, array_list and string_list.
+ * @version 0.1
+ * @date 2022-10-25
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
+
 #include "parser.h"
 
 #include <stdio.h>
@@ -378,7 +390,7 @@ static void print_sets(universe u) {
     }
 }
 
-void print_universe(universe u){            // TODO
+void print_universe(universe u){ 
     printf("Universe name: %s", u.name);
     printf("\n\n");
 
@@ -775,7 +787,7 @@ static char* parse_value(char* string_value, int data_type) {
     return NULL;
 }
 
-static const char* any_value = "(([a-zA-Z0-9.+\\-]+)|(\"(([^\"\\\\]|(\\\\.))+)\"))"; // This has 6 groups (We only use group 1)
+static const char* any_value = "(([a-zA-Z0-9_.+\\-]+)|(\"(([^\"\\\\]|(\\\\.))+)\"))"; // This has 6 groups (We only use group 1)
 static char* regex_string_universe_values; // concat8(",?\\s*", any_value, "\\s*((,\\s*", any_value, "\\s*)*)", NULL, NULL, NULL);
 static regex_t regex_universe_values;
 
@@ -879,15 +891,40 @@ static int parse_universe_insert_supp(universe * u, char* str, char* error_messa
 
     size_t data_length = count_delimiter(str, ':');
 
-    initialize_array_list(&(u->key_values), data_length); // malloc
-    initialize_array_list(&(u->attribute_values), data_length); // malloc
+    assert(u->key_values.length == u->attribute_values.length);
+
+    size_t first_data_index = 0;
+    if (u->key_values.length == 0) {
+        initialize_array_list(&(u->key_values), data_length); // malloc
+        initialize_array_list(&(u->attribute_values), data_length); // malloc
+    // If there are already values we keep them
+    } else {
+        size_t previous_data_length = u->key_values.length;
+        data_length = previous_data_length + data_length;
+
+        char*** previous_key_values = u->key_values.values;
+        char*** previous_attribute_values = u->attribute_values.values;
+
+        initialize_array_list(&(u->key_values), data_length); // malloc
+        initialize_array_list(&(u->attribute_values), data_length); // malloc
+
+        for (size_t i = 0; i < previous_data_length; i++) {
+            u->key_values.values[i] = previous_key_values[i];
+            u->attribute_values.values[i] = previous_attribute_values[i];
+        }
+
+        free(previous_key_values);
+        free(previous_attribute_values);
+
+        first_data_index = previous_data_length;
+    }
 
     int is_key_value = 1;
     int is_attribute_value = 0;
 
     int error = 0;
 
-    for (size_t i = 0; i < data_length; i++) {
+    for (size_t i = first_data_index; i < data_length; i++) {
         size_t data_index = i;
 
         // Parse key values
@@ -1013,7 +1050,7 @@ static int parse_universe_insert(universe * u, char* str, char* error_message) {
     return error;
 }
 
-static const char* regex_string_create_set = "^\\s*CREATE\\s+SET\\s+([a-zA-Z]+)\\s*$";
+static const char* regex_string_create_set = "^\\s*CREATE\\s+SET\\s+([a-zA-Z0-9_]+)\\s*$";
 static regex_t regex_create_set;
 
 // Returns 0 if it is successful
@@ -1039,6 +1076,11 @@ static int parse_create_set(universe * u, char* str, char* error_message, size_t
     assert(strlen(set_name) < 50);
 
     int error = 0;
+
+    if (strcmp(u->name, set_name) == 0) {
+        sprintf(error_message, "Error creating set. Sets cannot have the same name as the universe.");
+        error = 1;
+    }
 
     if (exists_universe_set(u, set_name)) {
         sprintf(error_message, "Error creating set. Set \"%s\" already exists.", set_name);
@@ -1147,11 +1189,29 @@ static int parse_set_insert_supp(universe * u, char* str, char* error_message, s
     // Assert that the inserted values are less or equal to the amount of values in the universe
     assert(current_set_data_length <= u->key_values.length);
 
-    initialize_array_list(&(u->sets[set_index].key_values), current_set_data_length); // malloc with 
+    size_t first_data_index = 0;
+    if (u->key_values.length == 0) {
+        initialize_array_list(&(u->sets[set_index].key_values), current_set_data_length); // malloc
+    // If there are already values we keep them
+    } else {
+        size_t previous_data_length = u->sets[set_index].key_values.length;
+        current_set_data_length = previous_data_length + current_set_data_length;
+
+        char*** previous_key_values = u->sets[set_index].key_values.values;
+
+        initialize_array_list(&(u->sets[set_index].key_values), current_set_data_length); // malloc
+
+        for (size_t i = 0; i < previous_data_length; i++)
+            u->sets[set_index].key_values.values[i] = previous_key_values[i];
+
+        free(previous_key_values);
+
+        first_data_index = previous_data_length;
+    }
 
     int error = 0;
 
-    for (size_t i = 0; i < current_set_data_length; i++) {
+    for (size_t i = first_data_index; i < current_set_data_length; i++) {
         size_t data_index = i;
 
         // Parse key values
@@ -1194,7 +1254,7 @@ static int parse_set_insert_supp(universe * u, char* str, char* error_message, s
     return error;
 }
 
-static const char* regex_string_set_insert = "^\\s*INSERT\\s*\\{([^;]+)\\}\\s*INTO\\s+([a-zA-Z]+)\\s*$";
+static const char* regex_string_set_insert = "^\\s*INSERT\\s*\\{([^;]+)\\}\\s*INTO\\s+([a-zA-Z0-9_]+)\\s*$";
 static regex_t regex_set_insert;
 
 // Returns 0 if it is successful
@@ -1314,21 +1374,32 @@ int parse_initialization(universe* u, const char* file_name) {
 
     line += count_lines(buffer);
 
+    int scanned_commands = 3;   // Commands that have been analyzed and executed by now
+
+    // We check if there are more inserts
+    while (fscanf(ptr, "%[^;];", buffer) == 1) {
+        // if not a universe insert
+        if (parse_universe_insert(u, buffer, error_message))
+            break;
+        scanned_commands += 1;
+        line += count_lines(buffer);
+    }
+
     // Count created sets
     size_t sets_count = 0;
-    while (fscanf(ptr, "%[^;];", buffer) == 1) {
+    do {
 
         // if CREATE SET
         if (regexec(&regex_create_set, buffer, 0, NULL, 0) == 0) {
             sets_count += 1;
         }
 
-    }
+    } while (fscanf(ptr, "%[^;];", buffer) == 1);
     fclose(ptr);
 
     // Get the file pointer back to the same position as before
     ptr = fopen(file_name, "r");
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i <  scanned_commands; i++)
         fscanf(ptr, "%[^;];", buffer);
 
     initialize_sets(u, sets_count);
