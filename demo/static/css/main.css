@@ -1,0 +1,39 @@
+body {
+	font-family: sans-serif;
+}
+
+h1 {
+	text-align: center;
+}
+
+.center
+{
+	width: 100%;
+	text-align: center;
+}
+
+#cities-list
+{
+	border-style: solid;
+
+	margin: 20px 20% 0 20%;
+
+	padding: 0;
+
+	list-style: none;
+}
+
+#cities-list li {
+	padding-left: 20px;
+	padding-right: 20px;
+
+	padding-top: 10px;
+	padding-bottom: 10px;
+	text-align: left;
+
+	border-top-style: solid;
+}
+
+#cities-list li:first-child {
+	border-top-style: none;
+}

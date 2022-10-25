@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<h1>Cities :^)</h1>
+{% endblock %}
+
+
+{% block body %}
+
+<div class="center">
+
+	<form>
+		<label for="query">Query: </label>
+		<input type="text" id="query" name="query">
+		<input type="submit" value="GO" formmethod="POST">
+	</form>
+
+	<ul id="cities-list">
+
+		{% for i in range(0, data|length) %}
+
+		<li>
+			{% for j in range(0, data[i]|length) %}
+				{{ data[i][j] }}
+			{% endfor %}
+		</li>
+
+		{% endfor %}
+	</ul>
+</div>
+{% endblock %}
