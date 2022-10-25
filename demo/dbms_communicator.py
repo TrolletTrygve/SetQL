@@ -3,8 +3,13 @@ import time
 import select
 
 def read_string(socket, size):
-	byte_arr = socket.recv(size)
-	string = byte_arr.decode('utf-8')
+	data = socket.recv(size)
+	i = int.from_bytes(data, "little")
+	return i
+
+def read_int(socket, size):
+	data = socket.recv(size)
+	string = data.decode('utf-8')
 	return string
 
 class DBMS_COM(object):
