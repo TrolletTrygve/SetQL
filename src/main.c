@@ -20,23 +20,12 @@ int test_function(char msg[MAX_MESSAGE_SIZE], int size, client_id id)
 
 int main(void)
 {
-	//universe u = create_universe_example();
-	//print_universe(u);
-
 	universe u = create_empty_universe();
-	parse_initialization(&u, "./initialization_example.txt");
+	parse_initialization(&u, "./example_db/language_example.txt");
 
 	print_universe(u);
 
 	free_universe(&u);
-
-	query q = create_empty_query();
-
-	printf("\n\n\nQuery:\nSELECT name, population\nFROM COMPLEMENT (UNION (COMPLEMENT Bird, (DIFFERENCE (Bird, CanFly))));\nStructure:\n");
-	parse_query(&q, "SELECT name, population FROM COMPLEMENT (UNION (COMPLEMENT Bird, (DIFFERENCE (Bird, CanFly))));");
-	print_set_op(q.op);
-	printf("\n");
-	free_query(&q);
 
 	return 0;
 }
