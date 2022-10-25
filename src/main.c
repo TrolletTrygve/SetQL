@@ -31,17 +31,9 @@ int main(void)
 	free_universe(&u);
 
 	query q = create_empty_query();
-	parse_query(&q, "SELECT name, population FROM COMPLEMENT (COMPLEMENT CanFly);");
-	print_set_op(q.op);
-	printf("\n");
-	free_query(&q);
 
-	parse_query(&q, "SELECT name, population FROM UNION (Bird, COMPLEMENT CanFly);");
-	print_set_op(q.op);
-	printf("\n");
-	free_query(&q);
-
-	parse_query(&q, "SELECT name, population FROM COMPLEMENT (UNION ((COMPLEMENT Bird), (INTERSECTION (Bird, CanFly))));");
+	printf("\n\n\nQuery:\nSELECT name, population\nFROM COMPLEMENT (UNION (COMPLEMENT Bird, (DIFFERENCE (Bird, CanFly))));\nStructure:\n");
+	parse_query(&q, "SELECT name, population FROM COMPLEMENT (UNION (COMPLEMENT Bird, (DIFFERENCE (Bird, CanFly))));");
 	print_set_op(q.op);
 	printf("\n");
 	free_query(&q);
