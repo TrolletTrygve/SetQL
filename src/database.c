@@ -1,3 +1,14 @@
+/**
+ * @file database.c
+ * @author Simon Uttertröm (c18sum@cs.umu.se)
+ * @brief Database management system structure and initialization for set operations.
+ * @version 0.1
+ * @date 2022-10-25
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -8,14 +19,9 @@
 #include <inttypes.h>
 
 
-
 /* local functions */
 static void printSets(Database* db);
 static void printAttributes(Database* db);
-
-
-
-
 
 
 /**
@@ -450,7 +456,6 @@ void printAttributes(Database* db){
                     if(c != '\0') {
                         printf("%c",c);
                     } else break;
-                    
                 }
                 break;
             printf("%lu", attr.data[keyIndex].longlong_u);break;
@@ -478,7 +483,7 @@ void printAttributes(Database* db){
 
 
 void db_test(void){
-	Database* db = createEmptyDB(200, 10, 10); 
+	Database* db = createEmptyDB(DB_MAX_STRING_LENGTH, 10, 10); 
 
 	char s[] = "coolsetname";
 	db_createSet(db, s);

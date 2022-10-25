@@ -17,7 +17,7 @@
 #define TYPE_64 4
 #define TYPE_STRING 5
 
-#define DB_MAX_STRING_LENGTH 200
+#define DB_MAX_STRING_LENGTH 256
 
 
 

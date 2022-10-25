@@ -19,7 +19,7 @@ typedef struct{
 
 typedef struct{
     uint64_t dataLength;
-    ColumnData* data; // include keys
+    ColumnData* columns; // include keys
     uint64_t columnCount;
 } QueryReturn;
 

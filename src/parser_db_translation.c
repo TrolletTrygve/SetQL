@@ -74,7 +74,7 @@ int db_addParsedData_attributes(Database* db, universe* u){
         char* uname = u->attribute_data_names.strings[i];
         char* utype = u->attribute_data_type_names.strings[i];
         if(!strcmp(utype,"STRING")){
-            db_createAttribute(db, uname, TYPE_STRING, 200);
+            db_createAttribute(db, uname, TYPE_STRING, DB_MAX_STRING_LENGTH);
         }
         else if(!strcmp(utype,"INTEGER")){
             db_createAttribute(db, uname, TYPE_64, 0);
@@ -169,7 +169,7 @@ SetOpReturn db_run_set_operation(Database* db, set_op* sop){
         case OP_DIFFERENCE:
                 rbl = db_run_set_operation(db, sop->left_op);
                 rbr = db_run_set_operation(db, sop->right_op);
-                result = bitset_intersection(rbl.bs, rbr.bs);
+                result = bitset_difference(rbl.bs, rbr.bs);
                 freeBitsets(rbl, rbr);
                 rbreturn.bs = result;
                 return rbreturn;
@@ -183,34 +183,50 @@ SetOpReturn db_run_set_operation(Database* db, set_op* sop){
 }
 
 
+
 QueryReturn* db_run_query(Database* db, query* q){
     QueryReturn* qr = malloc(sizeof(QueryReturn));
     SetOpReturn sor = db_run_set_operation(db, q->op);
     int attributeTables[db->attrCount];
-    int attrTableCount = 0;
+    memset(attributeTables,0,sizeof(int)*db->attrCount);
+    
 
     // get all attribute tables, initialize ColumnData structures
-    for (;attrTableCount < q->column_names.length; attrTableCount++){
-        TableData* tb = st_search(db, q->column_names.strings[attrTableCount]);
-        attributeTables[attrTableCount] = tb->index;
-        ColumnData* cd = malloc(sizeof(ColumnData));
+    for (size_t column_index = 0;column_index < q->column_names.length; column_index++){
+        TableData* tb = st_search(db->attrNamesTable, q->column_names.strings[column_index]);
+        attributeTables[column_index] = tb->index;
+        ColumnData cd;
         if(db->attributes[tb->index].type == TYPE_STRING){
-            cd->isString = 1;
+            cd.isString = 1;
+            cd.data = malloc(db->keyCount*DB_MAX_STRING_LENGTH*sizeof(uint8_t));
         }
         else{
-            cd->isString = 0;
+            cd.isString = 0;
+            cd.data = calloc(db->keyCount, sizeof(uint64_t));
         }
-        cd->memorySize;
+        qr->columns[column_index] = cd;
     }
 
-    for (uint64_t i = 0; i < db->keyCount; i++){
-        uint64_t byte_i = i / INTEGER_BIT_SIZE;
-	    uint64_t bit_placement_i = i % INTEGER_BIT_SIZE;
-        for (size_t j = 0; j < attrTableCount; j++){
-            
+    // add all attributes of keys in the set operation return to the query return
+    for (uint64_t key_i = 0; key_i < db->keyCount; key_i++){
+        uint64_t byte = sor.bs->bits[key_i / INTEGER_BIT_SIZE];
+        uint64_t bit = (byte >> (key_i / INTEGER_BIT_SIZE));
+        if(bit & 1){
+            for (size_t col_i = 0; col_i < q->column_names.length; col_i++){
+                Attributes attr = db->attributes[attributeTables[col_i]];
+                if(attr.type == TYPE_STRING){
+                    uint8_t* coldata = (uint8_t*) qr->columns[col_i].data;
+                    memcpy(coldata, attr.data, DB_MAX_STRING_LENGTH);
+                    qr->columns[col_i].memorySize += DB_MAX_STRING_LENGTH;
+                }
+                else{ 
+                    uint64_t* coldata = (uint64_t*) qr->columns[col_i].data;
+                    coldata[key_i] = attr.data->longlong_u;
+                    qr->columns[col_i].memorySize += sizeof(uint64_t);
+                }
+            }
+            qr->dataLength++;
         }
-
-	    b->bits[i] = ((uint64_t)1 << bit_placement_i);
     }
     
     free(sor.bs);
