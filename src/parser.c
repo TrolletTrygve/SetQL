@@ -1,3 +1,15 @@
+/**
+ * @file parser.c
+ * @author Jose Ruiz Alarcon
+ * @brief This file contains implementations for the header file "parser.h".
+ * It implements different functions for the type universe, set, array_list and string_list.
+ * @version 0.1
+ * @date 2022-10-25
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
+
 #include "parser.h"
 
 #include <stdio.h>
