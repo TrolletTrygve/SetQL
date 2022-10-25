@@ -378,7 +378,7 @@ static void print_sets(universe u) {
     }
 }
 
-void print_universe(universe u){            // TODO
+void print_universe(universe u){ 
     printf("Universe name: %s", u.name);
     printf("\n\n");
 
