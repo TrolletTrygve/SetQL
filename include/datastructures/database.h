@@ -17,14 +17,14 @@
 #define TYPE_64 4
 #define TYPE_STRING 5
 
-
-
+#define DB_MAX_STRING_LENGTH 256
 
 
 
 
 /**
  * @brief Union capable of storing different types of attribute data.
+ * TODO: ONLY UNSIGNED HERE!?
  */
 typedef union{
     uint8_t char_u[8];
@@ -85,8 +85,6 @@ typedef struct{
  * @return struct Database pointer with allocated memory
  */
 Database* createEmptyDB(long universeSize, long setSize, long attrSize);
-
-
 
 void db_removeFromSet(Database* db, char*set, char*key);
 

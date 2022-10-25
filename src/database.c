@@ -1,3 +1,14 @@
+/**
+ * @file database.c
+ * @author Simon Uttertröm (c18sum@cs.umu.se)
+ * @brief Database management system structure and initialization for set operations.
+ * @version 0.1
+ * @date 2022-10-25
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -8,15 +19,9 @@
 #include <inttypes.h>
 
 
-
 /* local functions */
 static void printSets(Database* db);
 static void printAttributes(Database* db);
-
-
-
-
-
 
 
 /**
@@ -104,11 +109,11 @@ void db_createSet(Database* db, char*name){
  * @brief removes a key from a set 
  * Switches a bit to 0 at the index of the key given by the keyTable in the database
  * @param db Database to use
- * @param set name of the set
+ * @param setKey name of the set
  * @param key name of the key to remove
  */
-void db_removeFromSet(Database* db, char*set, char*key){
-    DEBUG_CALL(printf("db_removeFromSet \t- removing %s from set %s\n", key, set));
+void db_removeFromSet(Database* db, char*setKey, char*key){
+    DEBUG_CALL(printf("db_removeFromSet \t- removing %s from set %s\n", key, setKey));
     TableData* edata = st_search(db->keyTable, key);
 
     if(edata == NULL){
@@ -116,7 +121,7 @@ void db_removeFromSet(Database* db, char*set, char*key){
         return;
     }
 
-    TableData* sdata = st_search(db->setNamesTable, set);
+    TableData* sdata = st_search(db->setNamesTable, setKey);
 
     if(sdata == NULL){
         perror("addToSet \t- ERROR! set name not in database symbol table");
@@ -141,18 +146,18 @@ void db_removeFromSet(Database* db, char*set, char*key){
  * @brief Adds one element to the set 
  * Switches one bit in the set to a 1 on the index corresponding to the element.
  * @param db Database to use
- * @param set name of the set to add element to
+ * @param setKey name of the set to add element to
  * @param key name of the key
  */
-void db_addToSet(Database* db, char* set, char* key){
-    DEBUG_CALL(printf("db_addToSet \t- adding %s to set %s\n", key, set));
+void db_addToSet(Database* db, char* setKey, char* key){
+    DEBUG_CALL(printf("db_addToSet \t- adding %s to set %s\n", key, setKey));
     TableData* edata = st_search(db->keyTable, key);
     if(edata == NULL){
         errno = EINVAL;
         perror("addToSet \t- ERROR! key name not in database");
         return;
     }
-    TableData* sdata = st_search(db->setNamesTable, set);
+    TableData* sdata = st_search(db->setNamesTable, setKey);
     if(sdata == NULL){
         errno = EINVAL;
         perror("addToSet \t- ERROR! set name not in database symbol table");
@@ -175,7 +180,7 @@ void db_addToSet(Database* db, char* set, char* key){
 
 /**
  * @brief Adds a new key to the database. Can't have the same name as another
- * key.
+ * key. Ignores dublicate keys.
  * 
  * @param db Database to add key to
  * @param name Name of the key
@@ -185,6 +190,11 @@ void db_addKey(Database* db, char*name){
     if(strlen(name) < 1){
         errno = EINVAL;
         perror("db_addKey \t- name of key must be longer than 0");
+        return;
+    }
+    if(st_search(db->keyTable, name)!=NULL){
+        errno = EINVAL;
+        perror("db_addKey \t- key name already in use");
         return;
     }
     st_insert(db->keyTable, name, db->keyCount);
@@ -339,6 +349,34 @@ void db_destroy(Database* db){
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void db_print(Database* db){
     printf("\ndatabase\n");
     printf("----------------------------------\n");
@@ -363,14 +401,14 @@ void printSets(Database* db){
         free(keys[i]);
         int index = data->index;
 
-        bitset* set = &db->sets[index];
+        bitset* s = &db->sets[index];
         //uint64_t* set = db->sets[index];
 
         printf("set %s", keys[i]);
         
         //long b = db->keyCount / (sizeof(uint64_t)*8)+1;
 
-        bitset_print(set);
+        bitset_print(s);
         /*
         for (long j = 0; j < b; j++){
             printf("\n");
@@ -418,7 +456,6 @@ void printAttributes(Database* db){
                     if(c != '\0') {
                         printf("%c",c);
                     } else break;
-                    
                 }
                 break;
             printf("%lu", attr.data[keyIndex].longlong_u);break;
@@ -446,10 +483,10 @@ void printAttributes(Database* db){
 
 
 void db_test(void){
-	Database* db = createEmptyDB(200, 10, 10); 
+	Database* db = createEmptyDB(DB_MAX_STRING_LENGTH, 10, 10); 
 
-	char set[] = "coolsetname";
-	db_createSet(db, set);
+	char s[] = "coolsetname";
+	db_createSet(db, s);
 
 	// add keys
 	for (int i = 0; i < 150; i++){
@@ -457,13 +494,13 @@ void db_test(void){
 		sprintf(dst, "key%d", i);
 		db_addKey(db, dst);
         if(i%2){
-            db_addToSet(db, set, dst);
+            db_addToSet(db, s, dst);
         }
 	}
 	
 	char key[] = "key5";
 
-	db_addToSet(db, set, key);
+	db_addToSet(db, s, key);
 
 	char attr1[] = "attributetable_byte";
 	db_createAttribute(db, attr1, TYPE_8, -1);
