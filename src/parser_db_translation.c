@@ -40,8 +40,9 @@ int db_addParsedData_keys(Database* db, universe* u){
         return 1;
     }
     for (uint64_t i = 0; i < u->key_values.length; i++){
-        st_insert(db->keyTable, u->key_values.values[i][0],db->keyCount);
-        db->keyCount++;
+        db_addKey(db, u->key_values.values[i][0]);
+        //st_insert(db->keyTable, u->key_values.values[i][0],db->keyCount);
+        //db->keyCount++;
     }
     return 0;
 }
