@@ -209,6 +209,7 @@ QueryReturn* db_run_query(Database* db, query* q){
     DEBUG_CALL(printf("db_run_query \t- running query\n"));
     QueryReturn* qr = malloc(sizeof(QueryReturn));
     qr->columns = calloc(q->column_names.length, sizeof(ColumnData));
+    qr->dataLength = 0;
     SetOpReturn sor = db_run_set_operation(db, q->op);
     int attributeTables[db->attrCount];
     memset(attributeTables,0,sizeof(int)*db->attrCount);
