@@ -35,12 +35,13 @@ int db_addParsedData(Database* db, universe* u){
  * TODO: handle multiple keys (change symbol table to handle an array of key strings and add the hash together)
  */
 int db_addParsedData_keys(Database* db, universe* u){
-    if(u->key_values.length> db->maxKeyCount - db->keyCount){
+    if(u->key_values.length > db->maxKeyCount - db->keyCount){
         fprintf(stderr, "db_addParsedData_keys \t- error, more keys added than database can handle");
         return 1;
     }
     for (uint64_t i = 0; i < u->key_values.length; i++){
         db_addKey(db, u->key_values.values[i][0]);
+        db_setAttribute(db, "name", u->key_values.values[i][0], u->key_values.values[i][0]);
         //st_insert(db->keyTable, u->key_values.values[i][0],db->keyCount);
         //db->keyCount++;
     }
