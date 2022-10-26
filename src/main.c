@@ -66,13 +66,16 @@ int main(void)
 	 	free_universe(&u);
 
 	 	query q = create_empty_query();
-	 	error = parse_query(&q, "SELECT population FROM inSweden;");
+	 	error = parse_query(&q, "SELECT name, population FROM inSweden;");
 	 	if (error)
 	 	{
 	 		fprintf(stderr, "%s\n", "Error, parse_query");
 	 		return -1;
 	 	}
 
+	 	//QueryReturn* db_run_query(Database* db, query* q);
+	 	QueryReturn* ret = db_run_query(db, &q);
+	 	printf("length: %ld\n", ret->dataLength);
 
 	 	free_query(&q);
 
