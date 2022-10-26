@@ -56,7 +56,7 @@ int db_addParsedData_sets(Database* db, universe* u){
     for (uint64_t i = 0; i < u->sets_length; i++){
         db_createSet(db, u->sets[i].name);
         for (uint64_t j = 0; j < u->sets[i].key_values.length; j++){
-            db_addToSet(db, u->sets[i].name, u->sets->key_values.values[j][0]);
+            db_addToSet(db, u->sets[i].name, u->sets[i].key_values.values[j][0]);
         }
     }
     return 0;
