@@ -15,11 +15,11 @@ void freeBitsets(SetOpReturn rbl, SetOpReturn rbr);
 
 int db_addParsedData(Database* db, universe* u){
     char* uname = u->key_data_names.strings[0];
-    if(strlen(db->primaryKeyName) == 0){
+    if(db->primaryKeyName[0] == '\0'){
         strcpy(db->primaryKeyName, uname);
-        db_createAttribute(db, u->name, TYPE_STRING, DB_MAX_STRING_LENGTH);
+        db_createAttribute(db, uname, TYPE_STRING, DB_MAX_STRING_LENGTH);
     }
-    else if(strlen(db->primaryKeyName)> 0 && strcmp(db->primaryKeyName, u->name) != 0){
+    else if(strlen(db->primaryKeyName)> 0 && strcmp(db->primaryKeyName, uname) != 0){
         DEBUG_CALL(perror("db_addParsedData \t- universe name different from database primary key name"));
         return 1;
     }
