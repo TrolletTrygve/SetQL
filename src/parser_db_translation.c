@@ -253,7 +253,7 @@ QueryReturn* db_run_query(Database* db, query* q){
             qr->dataLength++;
         }
     }
-    
-    free(sor.bs);
+    // free data here
+    DEBUG_CALL(printf("db_run_query \t- done\n"));
     return qr;
 }
