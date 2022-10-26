@@ -63,11 +63,20 @@ int main(void)
 	 	size_t universe_size = u.key_values.length;
 	 	db = createEmptyDB(universe_size, 1000, 100);
 	 	db_addParsedData(db, &u);
-	 	
-	 	
+	 	free_universe(&u);
 
-		pid = (int)getpid();
-		printf("Child! pid: %d\n", pid);
+	 	query q = create_empty_query();
+	 	error = parse_query(&q, "SELECT population FROM inSweden;");
+	 	if (error)
+	 	{
+	 		fprintf(stderr, "%s\n", "Error, parse_query");
+	 		return -1;
+	 	}
+
+
+	 	free_query(&q);
+
+		printf("DONE INITIALIZING\n");
 		dbms_networking_initialize(8080, &test_function);
 		dbms_networking_add_pipe_client(fd[PIPE_READ_END], fd[PIPE_WRITE_END]);
 

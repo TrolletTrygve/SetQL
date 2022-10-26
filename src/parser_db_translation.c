@@ -35,7 +35,8 @@ int db_addParsedData(Database* db, universe* u){
  * TODO: handle multiple keys (change symbol table to handle an array of key strings and add the hash together)
  */
 int db_addParsedData_keys(Database* db, universe* u){
-    if(u->key_values.length> db->maxKeyCount - db->keyCount){
+    if(u->key_values.length > db->maxKeyCount - db->keyCount){
+        fprintf(stderr, "%ld, %ld, %ld", u->key_values.length,db->maxKeyCount,db->keyCount);
         fprintf(stderr, "db_addParsedData_keys \t- error, more keys added than database can handle");
         return 1;
     }
