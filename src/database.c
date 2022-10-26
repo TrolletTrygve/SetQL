@@ -52,6 +52,7 @@ Database* createEmptyDB(long maxUniverseSize, long maxSetSize, long maxAttrSize)
     db->keyCount = 0;
     db->setCount = 0;
     db->attrCount = 0;
+    db->primaryKeyName[0] = '\0';
 
     DEBUG_CALL(printf("createEmptyDB \t- initializes sets\n"));
     db->sets = (bitset*)malloc(sizeof(bitset)*maxSetSize);

@@ -72,6 +72,8 @@ typedef struct{
     /* max and current amout of attributes in database */
     uint64_t                maxAttrSize;
     uint64_t                attrCount;
+
+    char primaryKeyName[DB_MAX_STRING_LENGTH];
 } Database;
 
 

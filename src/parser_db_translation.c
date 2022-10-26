@@ -14,6 +14,15 @@ void freeBitsets(SetOpReturn rbl, SetOpReturn rbr);
 
 
 int db_addParsedData(Database* db, universe* u){
+    char* uname = u->key_data_names.strings[0];
+    if(strlen(db->primaryKeyName) == 0){
+        strcpy(db->primaryKeyName, uname);
+        db_createAttribute(db, u->name, TYPE_STRING, DB_MAX_STRING_LENGTH);
+    }
+    else if(strlen(db->primaryKeyName)> 0 && strcmp(db->primaryKeyName, u->name) != 0){
+        DEBUG_CALL(perror("db_addParsedData \t- universe name different from database primary key name"));
+        return 1;
+    }
     if(db_addParsedData_keys(db, u)){
         return 1;
     }
@@ -41,7 +50,7 @@ int db_addParsedData_keys(Database* db, universe* u){
     }
     for (uint64_t i = 0; i < u->key_values.length; i++){
         db_addKey(db, u->key_values.values[i][0]);
-        //db_setAttribute(db, "name", u->key_values.values[i][0], u->key_values.values[i][0]);
+        db_setAttribute(db, db->primaryKeyName, u->key_values.values[i][0], u->key_values.values[i][0]);
         //st_insert(db->keyTable, u->key_values.values[i][0],db->keyCount);
         //db->keyCount++;
     }
@@ -189,16 +198,17 @@ SetOpReturn db_run_set_operation(Database* db, set_op* sop){
 
 QueryReturn* db_run_query(Database* db, query* q){
     QueryReturn* qr = malloc(sizeof(QueryReturn));
+    qr->columns = calloc(q->column_names.length, sizeof(ColumnData));
     SetOpReturn sor = db_run_set_operation(db, q->op);
     int attributeTables[db->attrCount];
     memset(attributeTables,0,sizeof(int)*db->attrCount);
-    
 
     // get all attribute tables, initialize ColumnData structures
     for (size_t column_index = 0;column_index < q->column_names.length; column_index++){
+        ColumnData cd;
         TableData* tb = st_search(db->attrNamesTable, q->column_names.strings[column_index]);
         attributeTables[column_index] = tb->index;
-        ColumnData cd;
+        // if attribute type is string
         if(db->attributes[tb->index].type == TYPE_STRING){
             cd.isString = 1;
             cd.data = malloc(db->keyCount*DB_MAX_STRING_LENGTH*sizeof(uint8_t));
@@ -206,9 +216,10 @@ QueryReturn* db_run_query(Database* db, query* q){
         else{
             cd.isString = 0;
             cd.data = calloc(db->keyCount, sizeof(uint64_t));
-        }
+        }        
         qr->columns[column_index] = cd;
     }
+
 
     // add all attributes of keys in the set operation return to the query return
     for (uint64_t key_i = 0; key_i < db->keyCount; key_i++){
