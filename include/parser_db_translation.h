@@ -23,7 +23,7 @@ typedef struct{
     uint64_t columnCount;
 } QueryReturn;
 
-void db_addParsedData(Database* db, universe* u);
+int db_addParsedData(Database* db, universe* u);
 SetOpReturn db_run_set_operation(Database* db, set_op* sop);
 
 QueryReturn* db_run_query(Database* db, query* q);

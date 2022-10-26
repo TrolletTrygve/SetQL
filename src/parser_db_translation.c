@@ -13,16 +13,17 @@ int db_addParsedData_attributes(Database* db, universe* u);
 void freeBitsets(SetOpReturn rbl, SetOpReturn rbr);
 
 
-void db_addParsedData(Database* db, universe* u){
+int db_addParsedData(Database* db, universe* u){
     if(db_addParsedData_keys(db, u)){
-        return;
+        return 1;
     }
     if(db_addParsedData_sets(db, u)){
-        return;
+        return 1;
     }
     if(db_addParsedData_attributes(db, u)){
-        return;
+        return 1;
     }
+    return 0;
 }
 
 
@@ -53,7 +54,7 @@ int db_addParsedData_sets(Database* db, universe* u){
     }
     for (uint64_t i = 0; i < u->sets_length; i++){
         db_createSet(db, u->sets[i].name);
-        for (uint64_t j = 0; j < u->sets->key_values.length; j++){
+        for (uint64_t j = 0; j < u->sets[i].key_values.length; j++){
             db_addToSet(db, u->sets[i].name, u->sets->key_values.values[j][0]);
         }
     }
