@@ -148,7 +148,7 @@ void freeBitsets(SetOpReturn rbl, SetOpReturn rbr){
  * 
  */
 SetOpReturn db_run_set_operation(Database* db, set_op* sop){
-    DEBUG_CALL(printf("db_run_set_operation \t- running set operation, optype %d, is_leave %d\n",sop->op_typ, sop->is_leave ));
+    DEBUG_CALL(printf("db_run_set_operation \t- running set operation, optype %d, is_leave %d\n",sop->op_type, sop->is_leave ));
 
     SetOpReturn rbl;
     SetOpReturn rbr;
