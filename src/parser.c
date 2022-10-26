@@ -556,8 +556,8 @@ static int parse_universe_definition(universe * u, char* str, char* error_messag
     }
 
     char* universe_name = groups[1];
-    if (strlen(universe_name) >= 50) {
-        strcpy(error_message, "Error parsing the universe definition: <universe_name> too long (max 50).");
+    if (strlen(universe_name) >= 256) {
+        strcpy(error_message, "Error parsing the universe definition: <universe_name> too long (max 256).");
         return 1;
     }
     strcpy(u->name, universe_name);
@@ -1073,7 +1073,7 @@ static int parse_create_set(universe * u, char* str, char* error_message, size_t
     }
 
     char* set_name = groups[1];
-    assert(strlen(set_name) < 50);
+    assert(strlen(set_name) < 256);
 
     int error = 0;
 

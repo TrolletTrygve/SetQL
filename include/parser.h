@@ -26,12 +26,12 @@ typedef struct {
 } array_list;
 
 typedef struct {
-    char name[50];
+    char name[256];
     array_list key_values;
 } set;
 
 typedef struct {
-    char name[50];
+    char name[256];
     string_list key_data_type_names;        // E.g. {['STRING'], 1}
     string_list key_data_names;             // E.g. {['scientific_name'], 1}
     string_list attribute_data_type_names;  // E.g. {['STRING', 'INTEGER'], 2}
