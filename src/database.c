@@ -47,7 +47,7 @@ Database* createEmptyDB(long maxUniverseSize, long maxSetSize, long maxAttrSize)
     db->maxSetSize = maxSetSize;
     db->maxAttrSize = maxAttrSize;
 
-    db_createAttribute(db, "name", TYPE_STRING, DB_MAX_STRING_LENGTH);
+    //db_createAttribute(db, "name", TYPE_STRING, DB_MAX_STRING_LENGTH);
 
     db->keyCount = 0;
     db->setCount = 0;
