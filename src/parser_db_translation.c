@@ -211,6 +211,7 @@ QueryReturn* db_run_query(Database* db, query* q){
     qr->columns = calloc(q->column_names.length, sizeof(ColumnData));
     qr->dataLength = 0;
     SetOpReturn sor = db_run_set_operation(db, q->op);
+    bitset_print(sor.bs);
     int attributeTables[db->attrCount];
     memset(attributeTables,0,sizeof(int)*db->attrCount);
 
@@ -234,25 +235,28 @@ QueryReturn* db_run_query(Database* db, query* q){
 
     DEBUG_CALL(printf("db_run_query \t- adding attribute values to return data structure\n"));
     // add all attributes of keys in the set operation return to the query return
-    for (uint64_t key_i = 0; key_i < db->keyCount; key_i++){
-        uint64_t byte = sor.bs->bits[key_i / INTEGER_BIT_SIZE];
-        uint64_t bit = (byte >> (key_i / INTEGER_BIT_SIZE));
-        if(bit & 1){
-            for (size_t col_i = 0; col_i < q->column_names.length; col_i++){
-                Attributes attr = db->attributes[attributeTables[col_i]];
-                if(attr.type == TYPE_STRING){
-                    uint8_t* coldata = (uint8_t*) qr->columns[col_i].data;
-                    memcpy(coldata, attr.data, DB_MAX_STRING_LENGTH);
-                    qr->columns[col_i].memorySize += DB_MAX_STRING_LENGTH;
+    for (uint64_t key_i = 0; key_i < sor.bs->integer_count; key_i++){
+        uint64_t ll = sor.bs->bits[key_i];
+        for (int j = 0; j < INTEGER_BIT_SIZE; j++){
+            uint64_t bit = (ll >> j);
+            if(bit & 1){
+                for (size_t col_i = 0; col_i < q->column_names.length; col_i++){
+                    Attributes attr = db->attributes[attributeTables[col_i]];
+                    if(attr.type == TYPE_STRING){
+                        uint8_t* coldata = (uint8_t*) qr->columns[col_i].data;
+                        memcpy(coldata, attr.data, DB_MAX_STRING_LENGTH);
+                        qr->columns[col_i].memorySize += DB_MAX_STRING_LENGTH;
+                    }
+                    else{ 
+                        uint64_t* coldata = (uint64_t*) qr->columns[col_i].data;
+                        coldata[key_i] = attr.data->longlong_u;
+                        qr->columns[col_i].memorySize += sizeof(uint64_t);
+                    }
                 }
-                else{ 
-                    uint64_t* coldata = (uint64_t*) qr->columns[col_i].data;
-                    coldata[key_i] = attr.data->longlong_u;
-                    qr->columns[col_i].memorySize += sizeof(uint64_t);
-                }
+                qr->dataLength++;
             }
-            qr->dataLength++;
         }
+
     }
     // free data here
     DEBUG_CALL(printf("db_run_query \t- done\n"));
