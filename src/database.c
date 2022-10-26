@@ -38,14 +38,15 @@ static void printAttributes(Database* db);
 Database* createEmptyDB(long maxUniverseSize, long maxSetSize, long maxAttrSize){
     DEBUG_CALL(printf("createEmptyDB \t- allocate memory for database and symbol table\n"));
     Database* db = malloc(sizeof(Database));
-    db->setNamesTable = create_table(maxSetSize*1.3);
-    db->attrNamesTable = create_table(maxAttrSize*1.3);
-    db->keyTable = create_table(maxUniverseSize*1.3);
+    db->setNamesTable = create_table(maxSetSize*1.3f);
+    db->attrNamesTable = create_table(maxAttrSize*1.3f);
+    db->keyTable = create_table(maxUniverseSize*1.3f);
 
     DEBUG_CALL(printf("createEmptyDB \t- store attributes\n"));
     db->maxKeyCount =  maxUniverseSize;
     db->maxSetSize = maxSetSize;
     db->maxAttrSize = maxAttrSize;
+
 
     //db_createAttribute(db, "name", TYPE_STRING, DB_MAX_STRING_LENGTH);
 

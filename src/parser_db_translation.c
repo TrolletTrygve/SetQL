@@ -45,6 +45,7 @@ int db_addParsedData(Database* db, universe* u){
  */
 int db_addParsedData_keys(Database* db, universe* u){
     if(u->key_values.length > db->maxKeyCount - db->keyCount){
+        fprintf(stderr, "%ld, %ld, %ld", u->key_values.length,db->maxKeyCount,db->keyCount);
         fprintf(stderr, "db_addParsedData_keys \t- error, more keys added than database can handle");
         return 1;
     }
