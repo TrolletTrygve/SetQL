@@ -42,6 +42,7 @@ int db_addParsedData_keys(Database* db, universe* u){
     }
     for (uint64_t i = 0; i < u->key_values.length; i++){
         db_addKey(db, u->key_values.values[i][0]);
+        db_setAttribute(db, "name", u->key_values.values[i][0], u->key_values.values[i][0]);
         //st_insert(db->keyTable, u->key_values.values[i][0],db->keyCount);
         //db->keyCount++;
     }
