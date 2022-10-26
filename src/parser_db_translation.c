@@ -127,8 +127,14 @@ int db_addParsedData_attributes(Database* db, universe* u){
  * @param rbr bitset to maybe clear
  */
 void freeBitsets(SetOpReturn rbl, SetOpReturn rbr){
-    if(rbl.free){free(rbl.bs);}
-    if(rbr.free){free(rbr.bs);}
+    if(rbl.free){
+        DEBUG_CALL(printf("db_run_set_operation \t- free(rbl.bs)\n"));
+        free(rbl.bs);
+        }
+    if(rbr.free){
+        DEBUG_CALL(printf("db_run_set_operation \t- free(rbr.bs)\n"));
+        free(rbr.bs);
+        }
 }
 
 
@@ -142,6 +148,8 @@ void freeBitsets(SetOpReturn rbl, SetOpReturn rbr){
  * 
  */
 SetOpReturn db_run_set_operation(Database* db, set_op* sop){
+    DEBUG_CALL(printf("db_run_set_operation \t- running set operation, optype %d, is_leave %d\n",sop->op_typ, sop->is_leave ));
+
     SetOpReturn rbl;
     SetOpReturn rbr;
     SetOpReturn rbreturn;
@@ -188,7 +196,7 @@ SetOpReturn db_run_set_operation(Database* db, set_op* sop){
                 return rbreturn;
             break;
         default:
-            fprintf(stderr, "db_parse_set_operation \t- ERROR something went wrong. op_type flag not [1-4].");
+            fprintf(stderr, "db_parse_set_operation \t- ERROR something went wrong. op_type flag not [1-4].\n");
             break;
         }
     }
@@ -198,12 +206,14 @@ SetOpReturn db_run_set_operation(Database* db, set_op* sop){
 
 
 QueryReturn* db_run_query(Database* db, query* q){
+    DEBUG_CALL(printf("db_run_query \t- running query\n"));
     QueryReturn* qr = malloc(sizeof(QueryReturn));
     qr->columns = calloc(q->column_names.length, sizeof(ColumnData));
     SetOpReturn sor = db_run_set_operation(db, q->op);
     int attributeTables[db->attrCount];
     memset(attributeTables,0,sizeof(int)*db->attrCount);
 
+    DEBUG_CALL(printf("db_run_query \t- getting attributes\n"));
     // get all attribute tables, initialize ColumnData structures
     for (size_t column_index = 0;column_index < q->column_names.length; column_index++){
         ColumnData cd;
@@ -221,7 +231,7 @@ QueryReturn* db_run_query(Database* db, query* q){
         qr->columns[column_index] = cd;
     }
 
-
+    DEBUG_CALL(printf("db_run_query \t- adding attribute values to return data structure\n"));
     // add all attributes of keys in the set operation return to the query return
     for (uint64_t key_i = 0; key_i < db->keyCount; key_i++){
         uint64_t byte = sor.bs->bits[key_i / INTEGER_BIT_SIZE];
