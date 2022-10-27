@@ -210,6 +210,7 @@ QueryReturn* db_run_query(Database* db, query* q){
     QueryReturn* qr = malloc(sizeof(QueryReturn));
     qr->columns     = calloc(q->column_names.length, sizeof(ColumnData));
     qr->dataLength  = 0;
+    qr->columnCount = q->column_names.length;
     SetOpReturn sor = db_run_set_operation(db, q->op);
     bitset_print(sor.bs);
     int attributeTables[db->attrCount];
