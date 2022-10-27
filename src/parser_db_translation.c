@@ -253,7 +253,7 @@ QueryReturn* db_run_query(Database* db, query* q){
                     }
                     else{ 
                         uint64_t* coldata = (uint64_t*) qr->columns[col_i].data;
-                        coldata[qr->dataLength] = attr.data->longlong_u;
+                        coldata[qr->dataLength] = attr.data[key_i].longlong_u;
                         qr->columns[col_i].memorySize += sizeof(uint64_t);
                     }
                 }
