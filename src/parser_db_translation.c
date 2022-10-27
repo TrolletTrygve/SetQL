@@ -243,13 +243,14 @@ QueryReturn* db_run_query(Database* db, query* q){
                 for (size_t col_i = 0; col_i < q->column_names.length; col_i++){
                     Attributes attr = db->attributes[attributeTables[col_i]];
                     if(attr.type == TYPE_STRING){
+                        // ERROR HERE
                         uint8_t* coldata = (uint8_t*) qr->columns[col_i].data;
-                        memcpy(coldata, attr.data, DB_MAX_STRING_LENGTH);
+                        memcpy(&coldata[qr->dataLength*DB_MAX_STRING_LENGTH], attr.data, DB_MAX_STRING_LENGTH);
                         qr->columns[col_i].memorySize += DB_MAX_STRING_LENGTH;
                     }
                     else{ 
                         uint64_t* coldata = (uint64_t*) qr->columns[col_i].data;
-                        coldata[key_i] = attr.data->longlong_u;
+                        coldata[qr->dataLength] = attr.data->longlong_u;
                         qr->columns[col_i].memorySize += sizeof(uint64_t);
                     }
                 }
