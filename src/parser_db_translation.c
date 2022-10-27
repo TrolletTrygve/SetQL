@@ -208,8 +208,8 @@ SetOpReturn db_run_set_operation(Database* db, set_op* sop){
 QueryReturn* db_run_query(Database* db, query* q){
     DEBUG_CALL(printf("db_run_query \t- running query\n"));
     QueryReturn* qr = malloc(sizeof(QueryReturn));
-    qr->columns = calloc(q->column_names.length, sizeof(ColumnData));
-    qr->dataLength = 0;
+    qr->columns     = calloc(q->column_names.length, sizeof(ColumnData));
+    qr->dataLength  = 0;
     SetOpReturn sor = db_run_set_operation(db, q->op);
     bitset_print(sor.bs);
     int attributeTables[db->attrCount];
@@ -237,30 +237,28 @@ QueryReturn* db_run_query(Database* db, query* q){
     // add all attributes of keys in the set operation return to the query return
     for (uint64_t int_index = 0; int_index < sor.bs->integer_count; int_index++){
         uint64_t ll = sor.bs->bits[int_index];
-        for (int bit_index = 0; bit_index < INTEGER_BIT_SIZE; bit_index++){
-            uint64_t bit = (ll >> bit_index);
+        for (int byte_index = 0; byte_index < INTEGER_BIT_SIZE; byte_index++){
+            uint64_t bit = (ll >> byte_index);
             if(bit & 1){
                 for (size_t col_i = 0; col_i < q->column_names.length; col_i++){
                     Attributes attr = db->attributes[attributeTables[col_i]];
                     if(attr.type == TYPE_STRING){
-                        // ERROR HERE
-                        uint8_t* coldata = (uint8_t*) qr->columns[col_i].data;
-                        uint64_t dest_address = qr->dataLength*DB_MAX_STRING_LENGTH;
-                        uint64_t src_address = (int_index*INTEGER_BIT_SIZE+bit_index)*DB_MAX_STRING_LENGTH;
-                        uint8_t* data = (uint8_t*) attr.data;
+                        uint8_t* coldata        = (uint8_t*) qr->columns[col_i].data;
+                        uint64_t dest_address   = qr->dataLength*DB_MAX_STRING_LENGTH;
+                        uint64_t src_address    = (int_index*INTEGER_BIT_SIZE+byte_index)*DB_MAX_STRING_LENGTH;
+                        uint8_t* data           = (uint8_t*) attr.data;
                         memcpy(&coldata[dest_address], &data[src_address], DB_MAX_STRING_LENGTH);
                         qr->columns[col_i].memorySize += DB_MAX_STRING_LENGTH;
                     }
                     else{ 
                         uint64_t* coldata = (uint64_t*) qr->columns[col_i].data;
-                        coldata[qr->dataLength] = attr.data[int_index+bit_index].int_64_u;
+                        coldata[qr->dataLength] = attr.data[int_index*INTEGER_BIT_SIZE+byte_index].int_64_u;
                         qr->columns[col_i].memorySize += sizeof(uint64_t);
                     }
                 }
                 qr->dataLength++;
             }
         }
-
     }
     // free data here
     DEBUG_CALL(printf("db_run_query \t- done\n"));
