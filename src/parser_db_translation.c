@@ -235,10 +235,10 @@ QueryReturn* db_run_query(Database* db, query* q){
 
     DEBUG_CALL(printf("db_run_query \t- adding attribute values to return data structure\n"));
     // add all attributes of keys in the set operation return to the query return
-    for (uint64_t key_i = 0; key_i < sor.bs->integer_count; key_i++){
-        uint64_t ll = sor.bs->bits[key_i];
-        for (int j = 0; j < INTEGER_BIT_SIZE; j++){
-            uint64_t bit = (ll >> j);
+    for (uint64_t int_index = 0; int_index < sor.bs->integer_count; int_index++){
+        uint64_t ll = sor.bs->bits[int_index];
+        for (int bit_index = 0; bit_index < INTEGER_BIT_SIZE; bit_index++){
+            uint64_t bit = (ll >> bit_index);
             if(bit & 1){
                 for (size_t col_i = 0; col_i < q->column_names.length; col_i++){
                     Attributes attr = db->attributes[attributeTables[col_i]];
@@ -246,14 +246,14 @@ QueryReturn* db_run_query(Database* db, query* q){
                         // ERROR HERE
                         uint8_t* coldata = (uint8_t*) qr->columns[col_i].data;
                         uint64_t dest_address = qr->dataLength*DB_MAX_STRING_LENGTH;
-                        uint64_t src_address = (key_i*INTEGER_BIT_SIZE+j)*DB_MAX_STRING_LENGTH;
+                        uint64_t src_address = (int_index*INTEGER_BIT_SIZE+bit_index)*DB_MAX_STRING_LENGTH;
                         uint8_t* data = (uint8_t*) attr.data;
                         memcpy(&coldata[dest_address], &data[src_address], DB_MAX_STRING_LENGTH);
                         qr->columns[col_i].memorySize += DB_MAX_STRING_LENGTH;
                     }
                     else{ 
                         uint64_t* coldata = (uint64_t*) qr->columns[col_i].data;
-                        coldata[qr->dataLength] = attr.data[key_i].int_64_u;
+                        coldata[qr->dataLength] = attr.data[int_index+bit_index].int_64_u;
                         qr->columns[col_i].memorySize += sizeof(uint64_t);
                     }
                 }
