@@ -308,13 +308,13 @@ void db_setAttribute(Database* db, char* attrName, char* keyName, void* data){
                         }
                         break;
 
-    case TYPE_16:       db->attributes[attrIndex].data[keyIndex/4].int_u[keyIndex%4] = *((uint16_t*) data); 
+    case TYPE_16:       db->attributes[attrIndex].data[keyIndex/4].int_16_u[keyIndex%4] = *((uint16_t*) data); 
                         break;
 
-    case TYPE_32:       db->attributes[attrIndex].data[keyIndex/2].long_u[keyIndex%2] = *((uint32_t*) data); 
+    case TYPE_32:       db->attributes[attrIndex].data[keyIndex/2].int_32_u[keyIndex%2] = *((uint32_t*) data); 
                         break;
 
-    case TYPE_64:       db->attributes[attrIndex].data[keyIndex].longlong_u = *((uint64_t*) data);
+    case TYPE_64:       db->attributes[attrIndex].data[keyIndex].int_64_u = *((uint64_t*) data);
                         break;
     default: break;
     }
@@ -462,10 +462,10 @@ void printAttributes(Database* db){
                     } else break;
                 }
                 break;
-            printf("%lu", attr.data[keyIndex].longlong_u);break;
-            case TYPE_16: printf("%u", attr.data[keyIndex/4].int_u[keyIndex%4]);break;
-            case TYPE_32: printf("%u", attr.data[keyIndex/2].long_u[keyIndex%2]);break;
-            case TYPE_64: printf("%lu", attr.data[keyIndex].longlong_u);break;
+            printf("%lu", attr.data[keyIndex].int_64_u);break;
+            case TYPE_16: printf("%u", attr.data[keyIndex/4].int_16_u[keyIndex%4]);break;
+            case TYPE_32: printf("%u", attr.data[keyIndex/2].int_32_u[keyIndex%2]);break;
+            case TYPE_64: printf("%lu", attr.data[keyIndex].int_64_u);break;
             default:break;
             }
             printf(",");

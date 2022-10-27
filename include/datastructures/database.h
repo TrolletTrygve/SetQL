@@ -28,9 +28,9 @@
  */
 typedef union{
     uint8_t char_u[8];
-    uint16_t int_u[4];
-    uint32_t long_u[2];
-    uint64_t longlong_u;
+    uint16_t int_16_u[4];
+    uint32_t int_32_u[2];
+    uint64_t int_64_u;
 }AttrUnion;
 
 
