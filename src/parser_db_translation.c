@@ -245,7 +245,8 @@ QueryReturn* db_run_query(Database* db, query* q){
                     if(attr.type == TYPE_STRING){
                         // ERROR HERE
                         uint8_t* coldata = (uint8_t*) qr->columns[col_i].data;
-                        memcpy(&coldata[qr->dataLength*DB_MAX_STRING_LENGTH], attr.data, DB_MAX_STRING_LENGTH);
+                        uint64_t addres_byte = qr->dataLength*DB_MAX_STRING_LENGTH;
+                        memcpy(&coldata[addres_byte], &attr.data[addres_byte/8].char_u[addres_byte%8], DB_MAX_STRING_LENGTH);
                         qr->columns[col_i].memorySize += DB_MAX_STRING_LENGTH;
                     }
                     else{ 
