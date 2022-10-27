@@ -29,6 +29,21 @@ int test_function(char msg[MAX_MESSAGE_SIZE], int size, client_id id)
 		return -1;
 	}
 
+	// Debug prints
+	#ifdef DEBUG
+		/*
+		uint64_t data_length = ret->dataLength;
+		uint64_t col_count = ret->columnCount;
+
+		void* col_data[64];
+		int col_type[64];
+		for (int i = 0; i < col_count; i++)
+		{
+			col_data[i] = (void*)ret->columns[i].data;
+		}
+		*/
+	#endif
+
 	//QueryReturn* ret = db_run_query(db, &q);
 
 	// Send amount of columns
@@ -96,11 +111,12 @@ int main(void)
 	 	printf("length: %ld\n", ret->dataLength);
 
 	 	//char* cities[256] = (char*)ret->columns[0].data;
-	 	char* long_string = (char*)ret->columns[0].data;
+	 	char* long_string 	= (char*)ret->columns[0].data;
+	 	uint64_t* pops 		= (uint64_t*)ret->columns[1].data;
 
 	 	for (uint64_t i = 0; i < ret->dataLength; i++)
 	 	{
-	 		printf("%s\n", &long_string[i*256]);
+	 		printf("%s, %ld\n", &long_string[i*256], pops[i]);
 	 	}
 
 	 	free_query(&q);
