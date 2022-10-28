@@ -368,7 +368,7 @@ static set_op* parse_set_operation(const char* string, char* error_message) {
     return NULL;
 }
 
-static const char* regex_string_query = "^\\s*SELECT\\s+([a-zA-Z0-9_]+\\s*(,\\s*[a-zA-Z0-9_]+\\s*)*)\\s+FROM\\s+([^;]+);$";
+static const char* regex_string_query = "^\\s*SELECT\\s+([a-zA-Z0-9_]+\\s*(,\\s*[a-zA-Z0-9_]+\\s*)*)\\s+FROM\\s+([^;]+);\\s*$";
 static regex_t regex_query;
 
 // Returns 0 if succesful
