@@ -29,32 +29,61 @@ int test_function(char msg[MAX_MESSAGE_SIZE], int size, client_id id)
 		return -1;
 	}
 
+	QueryReturn* ret = db_run_query(db, &q);
+
+	uint64_t data_length = ret->dataLength;
+	uint64_t col_count = ret->columnCount;
+
 	// Debug prints
 	#ifdef DEBUG
-		/*
-		uint64_t data_length = ret->dataLength;
-		uint64_t col_count = ret->columnCount;
 
-		void* col_data[64];
-		int col_type[64];
-		for (int i = 0; i < col_count; i++)
+		printf("Datalength: %ld, Column count: %ld\n", data_length, col_count);
+
+		
+		for (uint64_t i = 0; i < data_length; i++)
 		{
-			col_data[i] = (void*)ret->columns[i].data;
+			printf("%ld\n", i);
+			for (uint64_t j = 0; j < col_count; j++)
+			{
+				if (ret->columns[j].isString)
+				{
+					char* str_data = (char*)(ret->columns[j].data);
+					printf("%s ", &str_data[i*256]);
+				}
+				else
+				{
+					uint64_t* int_data = (uint64_t*)ret->columns[j].data;
+					printf("%ld ", int_data[i]);
+				}
+			}
+			printf("\n");
 		}
-		*/
+
 	#endif
 
-	//QueryReturn* ret = db_run_query(db, &q);
 
 	// Send amount of columns
+	dbms_networking_send((char*)(&ret->columnCount), 8, id);
 	// 
 	// Send length of data
+	dbms_networking_send((char*)(&ret->dataLength), 8, id);
 	// 
 	// For each column
+	// 
+	for (uint64_t i = 0; i < col_count; i++)
+	{
+		dbms_networking_send((char*)(&ret->columns[i].isString), 8, id);
+		uint64_t c_size = ret->columns[i].memorySize;
+		dbms_networking_send((char*)(&c_size), 8, id);
+		dbms_networking_send((char*)(ret->columns[i].data), c_size, id);
+	}
 	// 	send type for column
 	// 	send data size of column
 	//	send data for column
 
+
+
+	DEBUG_CALL(printf("DONE!\n");)
 	free_query(&q);
 
 	//dbms_networking_send((char*)(&meme_size), 8, id);

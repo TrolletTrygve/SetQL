@@ -11,19 +11,19 @@
 
 	<form>
 		<label for="query">Query: </label>
-		<input type="text" id="query" name="query">
+		<input type="text" style="width: 50%;" id="query" name="query">
 		<input type="submit" value="GO" formmethod="POST">
 	</form>
 
 	<ul id="cities-list">
 
-		{% for i in range(0, data|length) %}
+		{% for i in range(0, count) %}
 
-		<li>
-			{% for j in range(0, data[i]|length) %}
-				{{ data[i][j] }}
-			{% endfor %}
-		</li>
+			<li>
+				{% for j in range(0, data|length) %}
+					{{ data[j][i] }}
+				{% endfor %}
+			</li>
 
 		{% endfor %}
 	</ul>

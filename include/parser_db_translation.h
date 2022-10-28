@@ -12,7 +12,7 @@ typedef struct {
 } SetOpReturn;
 
 typedef struct{
-    int isString; // otherwise 64bit int
+    uint64_t isString; // otherwise 64bit int
     void* data;
     uint64_t memorySize;
 }ColumnData;
