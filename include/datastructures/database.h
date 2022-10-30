@@ -17,20 +17,20 @@
 #define TYPE_64 4
 #define TYPE_STRING 5
 
-
-
+#define DB_MAX_STRING_LENGTH 256
 
 
 
 
 /**
  * @brief Union capable of storing different types of attribute data.
+ * TODO: ONLY UNSIGNED HERE!?
  */
 typedef union{
     uint8_t char_u[8];
-    uint16_t int_u[4];
-    uint32_t long_u[2];
-    uint64_t longlong_u;
+    uint16_t int_16_u[4];
+    uint32_t int_32_u[2];
+    uint64_t int_64_u;
 }AttrUnion;
 
 
@@ -72,6 +72,8 @@ typedef struct{
     /* max and current amout of attributes in database */
     uint64_t                maxAttrSize;
     uint64_t                attrCount;
+
+    char primaryKeyName[DB_MAX_STRING_LENGTH];
 } Database;
 
 
@@ -85,8 +87,6 @@ typedef struct{
  * @return struct Database pointer with allocated memory
  */
 Database* createEmptyDB(long universeSize, long setSize, long attrSize);
-
-
 
 void db_removeFromSet(Database* db, char*set, char*key);
 
