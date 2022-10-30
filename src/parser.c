@@ -3,6 +3,7 @@
  * @author Jose Ruiz Alarcon
  * @brief This file contains implementations for the header file "parser.h".
  * It implements different functions for the type universe, set, array_list and string_list.
+ * Its main goal is the implementation of parsing the initialization of the database.
  * @version 0.1
  * @date 2022-10-25
  * 
